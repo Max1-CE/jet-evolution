@@ -414,7 +414,7 @@ function setupSpin() {
 function runLabel() {
   const b = $('[data-act="run"]');
   b.setAttribute("aria-pressed", String(running));
-  b.innerHTML = (running ? "■ Зупинити" : "▶ Запуск") + ' <span class="jv-k">(S)</span>';
+  b.innerHTML = (running ? "■ Зупинити" : "▶ " + (app?.runLabel ?? "Запуск")) + ' <span class="jv-k">(S)</span>';
 }
 function setRun(on) { running = on ?? !running; runLabel(); run(); }
 const M4 = new THREE.Matrix4(), M4b = new THREE.Matrix4();
@@ -450,7 +450,9 @@ function spinTick(dt) {
   if (rpmShown > 0.12 || !busy) {
     rpmShown = 0;
     const fmt = (x) => Math.round(Math.abs(x) / 10) * 10;
-    $(".jv-rpm").textContent = spools.filter((sp) => !sp.hide).map((sp) => `${sp.name} ${fmt(sp.w).toLocaleString("uk")}${sp.rpm < 0 ? " ↺" : ""}`).join(" · ") + " об/хв" + (still.matches && running ? " (рух вимкнено в системі)" : "");
+    const shafts = spools.filter((sp) => !sp.text);
+    const texts = spools.filter((sp) => sp.text && Math.abs(sp.w) > 0.05).map((sp) => sp.text);
+    $(".jv-rpm").textContent = [shafts.length ? shafts.map((sp) => `${sp.name} ${fmt(sp.w).toLocaleString("uk")}${sp.rpm < 0 ? " ↺" : ""}`).join(" · ") + " об/хв" : "", ...texts].filter(Boolean).join(" · ") + (still.matches && running ? " (рух вимкнено в системі)" : "");
   }
   return busy;
 }
@@ -479,7 +481,16 @@ function buildFlow() {
   if (!F) return;
   const per = 170;
   const parts = [];
-  F.lanes.forEach((lane, li) => {
+  if (F.paths) {
+    F.paths.forEach((path) => {
+      const cum = [0];
+      for (let k = 1; k < path.pts.length; k++) { const a = path.pts[k - 1], b = path.pts[k]; cum.push(cum[k - 1] + Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2])); }
+      path.cum = cum;
+      path.len = cum[cum.length - 1];
+    });
+    F.paths.forEach((path, pi) => { for (let k = 0; k < path.n; k++) parts.push({ pi, u: Math.random() * path.len, k: 0, jit: (Math.random() - 0.5) * 0.4 }); });
+  }
+  (F.lanes ?? []).forEach((lane, li) => {
     const n = Math.round(per * (lane.kind === "bypass" ? 1.1 : 1.35));
     const s1 = lane.s0 + lane.ds * (lane.r.length - 1);
     for (let k = 0; k < n; k++) parts.push({ li, s: lane.s0 + Math.random() * (s1 - lane.s0), phi: Math.random() * TAU, jit: (Math.random() - 0.5) * 0.6 });
@@ -506,7 +517,12 @@ function flowPlanes() {
 }
 function flowTick(dt, power) {
   if (!flow) return false;
-  const show = power > 0.01 && focus === root && root.t < 0.02 && !root.apart;
+  // потік видно, поки вибрана частина стоїть на своєму місці в зібраному апараті
+  let atRest = !focus.apart && focus.t < 0.02;
+  for (let x = focus.parent; x; x = x.parent) if (x.apart || x.t > 0.02) atRest = false;
+  if (singleOf(focus)) atRest = false;
+  if (flow.F.lanes && focus !== root) atRest = false;
+  const show = power > 0.01 && atRest;
   const mat = flow.points.material;
   const target = show ? Math.min(1, power * 1.4) : 0;
   mat.opacity += (target - mat.opacity) * (1 - Math.exp(-dt / 0.25));
@@ -515,6 +531,24 @@ function flowTick(dt, power) {
   flowPlanes();
   const { F, parts } = flow;
   const pos = flow.points.geometry.attributes.position.array, col = flow.points.geometry.attributes.color.array;
+  if (F.paths) {
+    const go = still.matches ? 0 : power * dt;
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i], path = F.paths[p.pi];
+      p.u += path.speed * go * (1 + p.jit);
+      if (p.u > path.len) { p.u -= path.len; p.k = 0; }
+      let k = p.k;
+      while (k < path.cum.length - 2 && path.cum[k + 1] < p.u) k++;
+      p.k = k;
+      const a = path.pts[k], b = path.pts[k + 1], f = Math.min(1, (p.u - path.cum[k]) / (path.cum[k + 1] - path.cum[k] || 1));
+      pos[i * 3] = a[0] + (b[0] - a[0]) * f; pos[i * 3 + 1] = a[1] + (b[1] - a[1]) * f; pos[i * 3 + 2] = a[2] + (b[2] - a[2]) * f;
+      const c = path.kind === "hot" ? FLOW_COL.hot : FLOW_COL.bypass;
+      col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+    }
+    flow.points.geometry.attributes.position.needsUpdate = true;
+    flow.points.geometry.attributes.color.needsUpdate = true;
+    return true;
+  }
   const base = F.size * 1.1 * (still.matches ? 0 : 1);
   for (let i = 0; i < parts.length; i++) {
     const p = parts[i], lane = F.lanes[p.li];

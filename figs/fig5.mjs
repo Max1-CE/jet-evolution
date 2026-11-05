@@ -172,6 +172,54 @@ const AIR_FUNC = [
   "Лите перо з трьома порожнинами; у передній стоїть вставка, з якої повітря б'є струменями в гарячу стінку зсередини.",
   "Звивисті канали всередині, ряди отворів плівкового охолодження зовні: повітря виходить на поверхню й укриває її шаром, холоднішим за газ.",
 ];
+/** Потік для 3D: газ обтікає перо на кількох висотах, охолоджувальне повітря йде вгору каналами. */
+function bladeFlow(v) {
+  const r1 = (x) => Math.round(x * 10) / 10;
+  const gasXY = (x0, sign) => {
+    const out = [];
+    for (let y = 140; y >= -70; y -= 4) {
+      const t = (60 - y) / C;
+      let x = x0;
+      if (t > -0.6 && t < 1.6) {
+        const tt = Math.min(1, Math.max(0, t));
+        x = x0 + camber(tt) * Math.exp(-((t - 0.5) ** 2) / 0.6) + (t > 1 ? (t - 1) * -26 : 0);
+        const [sx] = surface(tt, sign, -4);
+        if (t >= 0 && t <= 1 && sign * (x - sx) < 0) x = sx;
+      } else if (t >= 1.6) x = x0 - 15.6;
+      out.push([x, y]);
+    }
+    return out;
+  };
+  const paths = [];
+  for (const z of [42, 60, 78, 94, 116, 136, 154])
+    for (const [x0, sg] of [[-52, -1], [-40, -1], [-28, -1], [-18, -1], [26, 1], [38, 1], [50, 1], [62, 1]])
+      paths.push({ kind: "hot", speed: 130, n: 24, pts: gasXY(x0, sg).map(([x, y]) => [r1(x), y, z]) });
+  // охолоджувальне повітря: з плити крізь хвостовик угору кожним каналом
+  const up = (x, y, z1, tail) => {
+    const pts = [[-5, y, 0], [-5, y, 12], [x, y, Z_PLAT], [x, y, z1]];
+    return { kind: "cool", speed: 70, n: 22, pts: pts.concat(tail ?? [[x, y, z1 + 18]]).map((p) => p.map(r1)) };
+  };
+  const chans = [];
+  for (const [t0, t1] of v.cav ?? []) {
+    const k = t1 - t0 > 0.5 ? 4 : 1;
+    for (let j = 0; j < k; j++) chans.push(t0 + ((j + 0.5) / k) * (t1 - t0));
+  }
+  for (const t of v.holes ?? []) chans.push(t);
+  for (const t of chans) { const [x, y] = surface(t, 0); paths.push(up(x, y, Z_TIP)); }
+  if (v.film) {
+    // плівка: з каналу крізь отвір на поверхню й далі вздовж неї за потоком
+    for (const side of [1, -1]) for (const t of side > 0 ? [0.02, 0.08, 0.3, 0.5] : [0.02, 0.12, 0.4]) for (const z of [52, 80, 108, 136]) {
+      const [cx, cy] = surface(t, 0);
+      const pts = [[cx, cy, z - 6]];
+      for (let u = t; u <= 1.001; u += 0.06) { const [x, y] = surface(Math.min(1, u), side, -1.6); pts.push([x, y, z]); }
+      const [ex, ey] = surface(1, side, -1.6);
+      pts.push([ex - 6, ey - 20, z]);
+      paths.push({ kind: "cool", speed: 90, n: 6, pts: pts.map((p) => p.map(r1)) });
+    }
+  }
+  return { paths };
+}
+
 function bladeApp(v, i, DATA, TEMPS) {
   const metal = v.tbc ? 1.4 : 0;
   const holes = [];
@@ -212,6 +260,9 @@ function bladeApp(v, i, DATA, TEMPS) {
   return {
     frame: "z", cutSingle: true,
     cut: [[0, 0, -1, Z_CUT]],
+    runLabel: "Подати газ",
+    spools: [{ id: "gas", rpm: 1, tau: 0.7, text: `газ ${TEMPS[i].gas} K · охолоджувальне повітря ${Math.round(TEMPS[i].cool)} K` }],
+    flow: bladeFlow(v),
     view: [0.85, 1.35, 1.15],
     root: {
       id: "rig", name: "Лопатка турбіни ВТ на стенді", kicker: v.label,
