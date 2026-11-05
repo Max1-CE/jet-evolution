@@ -409,6 +409,7 @@ function setupSpin() {
   runLabel();
   $(".jv-rpm").hidden = !spools.length;
   $(".jv-rpm").textContent = "";
+  buildFlow();
 }
 function runLabel() {
   const b = $('[data-act="run"]');
@@ -432,6 +433,8 @@ function spinTick(dt) {
     if (sp.w) busy = true;
     by[sp.id] = sp;
   }
+  const main = spools[spools.length - 1];
+  if (flowTick(dt, main.rpm ? Math.abs(main.w / main.rpm) : 0)) busy = true;
   for (const n of spinners) {
     const sp = by[n.spec.spin.s];
     if (!sp) continue;
@@ -450,6 +453,85 @@ function spinTick(dt) {
     $(".jv-rpm").textContent = spools.filter((sp) => !sp.hide).map((sp) => `${sp.name} ${fmt(sp.w).toLocaleString("uk")}${sp.rpm < 0 ? " ↺" : ""}`).join(" · ") + " об/хв" + (still.matches && running ? " (рух вимкнено в системі)" : "");
   }
   return busy;
+}
+
+// --- потік повітря під час запуску (лише для цілого зібраного апарата) -----------------------------
+const FLOW_COL = { bypass: new THREE.Color(0x2f6fd6), core: new THREE.Color(0xd99a14), hot: new THREE.Color(0xe0461a) };
+let flow = null;
+function dotTexture() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 32;
+  const g = c.getContext("2d");
+  const grad = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+  grad.addColorStop(0, "rgba(255,255,255,1)");
+  grad.addColorStop(0.55, "rgba(255,255,255,0.9)");
+  grad.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 32, 32);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+function buildFlow() {
+  if (flow) { frameGroup.remove(flow.points); flow.points.geometry.dispose(); }
+  flow = null;
+  const F = app.flow;
+  if (!F) return;
+  const per = 170;
+  const parts = [];
+  F.lanes.forEach((lane, li) => {
+    const n = Math.round(per * (lane.kind === "bypass" ? 1.1 : 1.35));
+    const s1 = lane.s0 + lane.ds * (lane.r.length - 1);
+    for (let k = 0; k < n; k++) parts.push({ li, s: lane.s0 + Math.random() * (s1 - lane.s0), phi: Math.random() * TAU, jit: (Math.random() - 0.5) * 0.6 });
+  });
+  const geom = new THREE.BufferGeometry();
+  geom.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(parts.length * 3), 3));
+  geom.setAttribute("color", new THREE.Float32BufferAttribute(new Float32Array(parts.length * 3), 3));
+  const mat = new THREE.PointsMaterial({ size: 5.5, sizeAttenuation: false, vertexColors: true, map: dotTexture(), transparent: true, depthWrite: false, opacity: 0, clipIntersection: true, clippingPlanes: [] });
+  const points = new THREE.Points(geom, mat);
+  points.frustumCulled = false;
+  points.raycast = () => {};
+  points.visible = false;
+  points.renderOrder = 2;
+  frameGroup.add(points);
+  flow = { points, parts, F };
+}
+function flowPlanes() {
+  if (!flow) return;
+  const pl = flow.points.material.clippingPlanes;
+  const want = cutOn ? cutPlanes.length : 0;
+  if (pl.length !== want) { pl.length = 0; for (let k = 0; k < want; k++) pl.push(new THREE.Plane()); flow.points.material.needsUpdate = true; }
+  frameGroup.updateMatrixWorld(true);
+  for (let k = 0; k < want; k++) pl[k].copy(cutPlanes[k]).applyMatrix4(frameGroup.matrixWorld);
+}
+function flowTick(dt, power) {
+  if (!flow) return false;
+  const show = power > 0.01 && focus === root && root.t < 0.02 && !root.apart;
+  const mat = flow.points.material;
+  const target = show ? Math.min(1, power * 1.4) : 0;
+  mat.opacity += (target - mat.opacity) * (1 - Math.exp(-dt / 0.25));
+  if (mat.opacity < 0.01 && !show) { flow.points.visible = false; return false; }
+  flow.points.visible = true;
+  flowPlanes();
+  const { F, parts } = flow;
+  const pos = flow.points.geometry.attributes.position.array, col = flow.points.geometry.attributes.color.array;
+  const base = F.size * 1.1 * (still.matches ? 0 : 1);
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i], lane = F.lanes[p.li];
+    const s1 = lane.s0 + lane.ds * (lane.r.length - 1);
+    const byp = lane.kind === "bypass";
+    const v = byp ? (p.s > F.fanEnd ? 1.5 : 1.05) : p.s < F.hot ? 0.75 : p.s < F.coreEnd ? 1.45 : 2.3;
+    p.s += v * base * power * dt * (1 + p.jit * 0.3);
+    if (p.s > s1) { p.s = lane.s0 + (p.s - s1) * 0.2; p.phi = Math.random() * TAU; }
+    const q = (p.s - lane.s0) / lane.ds, k = Math.min(lane.r.length - 2, Math.floor(q)), f = q - k;
+    const r = lane.r[k] + (lane.r[k + 1] - lane.r[k]) * f;
+    pos[i * 3] = p.s; pos[i * 3 + 1] = r * Math.cos(p.phi); pos[i * 3 + 2] = r * Math.sin(p.phi);
+    const c = byp ? FLOW_COL.bypass : p.s < F.hot ? FLOW_COL.core : FLOW_COL.hot;
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+  }
+  flow.points.geometry.attributes.position.needsUpdate = true;
+  flow.points.geometry.attributes.color.needsUpdate = true;
+  return true;
 }
 
 function boxOf(n, atTarget) {

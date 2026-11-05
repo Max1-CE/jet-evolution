@@ -376,8 +376,56 @@ export const engineApp = (i) => ({
   cut: [[0, -1, 0, 0], [0, 0, -1, 0]],
   view: [-0.62, 0.38, 1],
   spools: SPOOLS[i],
+  flow: flowOf(GEOMETRY[i]),
   root: engineTree(i),
 });
+/** Лінії течії в меридіані для 3D: рівномірно по s, r — частка висоти каналу. */
+function flowOf(geo) {
+  const DS = 0.04;
+  const sm = (t) => t * t * (3 - 2 * t);
+  const lanes = [];
+  const F = [0.18, 0.38, 0.6, 0.82];
+  const s0 = (geo.bypass ? -0.75 : -0.95);
+  if (geo.bypass) {
+    const { s0: split, s1: fanEnd } = geo.bypass;
+    const splitR = geo.bypass.in(split);
+    const coreEnd = geo.core[1];
+    const hub = geo.hubR * 1.05;
+    for (const f of F) {
+      const core = [], byp = [];
+      for (let x = s0; x <= coreEnd + 1.2; x += DS) {
+        const inCore = geo.ri(Math.min(x, coreEnd)) + f * (geo.ro(Math.min(x, coreEnd)) - geo.ri(Math.min(x, coreEnd)));
+        const front = hub + f * (splitR - hub) * 0.9;
+        let r = x < split - 0.25 ? front : x < split ? front + (inCore - front) * sm((x - split + 0.25) / 0.25) : inCore;
+        if (x > coreEnd) r = inCore * (1 + 0.06 * (x - coreEnd));
+        core.push([r4(x), r4(Math.max(0.01, r))]);
+      }
+      for (let x = s0; x <= fanEnd + 1.2; x += DS) {
+        const xx = Math.min(Math.max(x, split), fanEnd);
+        const inB = geo.bypass.in(xx) + f * (geo.bypass.out(xx) - geo.bypass.in(xx));
+        const front = splitR + f * (geo.R * 0.96 - splitR);
+        let r = x < split - 0.25 ? front : x < split ? front + (inB - front) * sm((x - split + 0.25) / 0.25) : inB;
+        if (x > fanEnd) r = inB * (1 - 0.03 * (x - fanEnd));
+        byp.push([r4(x), r4(r)]);
+      }
+      lanes.push({ kind: "core", s0: r4(s0), ds: DS, r: core.map((p) => p[1]) }, { kind: "bypass", s0: r4(s0), ds: DS, r: byp.map((p) => p[1]) });
+    }
+    return { lanes, hot: geo.burner[0], coreEnd, fanEnd, size: geo.R };
+  }
+  const coreEnd = geo.core[1];
+  for (const f of F) {
+    const core = [];
+    for (let x = s0; x <= coreEnd + 1.2; x += DS) {
+      const xx = Math.min(Math.max(x, -0.3), coreEnd);
+      let r = geo.ri(xx) + f * (geo.ro(xx) - geo.ri(xx));
+      if (x < -0.3) r = 0.06 + f * 0.22;
+      if (x > coreEnd) r = geo.ro(coreEnd) * f * (1 + 0.05 * (x - coreEnd));
+      core.push(r4(Math.max(0.01, r)));
+    }
+    lanes.push({ kind: "core", s0: r4(s0), ds: DS, r: core });
+  }
+  return { lanes, hot: geo.burner[0], coreEnd, fanEnd: coreEnd, size: 0.45 };
+}
 // злітні оберти (приблизно), об/хв; tau — стала розкручування на моделі, с
 const SPOOLS = [
   [{ id: "hp", name: "n", rpm: 8700, tau: 1.6 }],
