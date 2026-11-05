@@ -1,0 +1,197 @@
+<!doctype html><html lang="uk"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Реактивний двигун: серія фігур</title><style>
+.iso{
+  --anatomy-page:#0b0b0b;--anatomy-card:#131313;--anatomy-text:#a3a3a3;--anatomy-strong:#e6e6e6;--anatomy-muted:#6e6e6e;
+  --anatomy-paper:#131313;--anatomy-face:#1b1b1b;--anatomy-top:#1c1c1c;
+  --anatomy-shade-0:#0f0f0f;--anatomy-shade-1:#121212;--anatomy-shade-2:#151515;--anatomy-shade-3:#181818;
+  --anatomy-lit-top:#262626;--anatomy-lit-shade:#1d1d1d;
+  --anatomy-hi:#d4d4d4;--anatomy-mid:#6a6a6a;--anatomy-lo:#3e3e3e;--anatomy-faint:#2a2a2a;--anatomy-lit:#ffffff;
+  --anatomy-halo:#050505;--anatomy-halo-opacity:.9;--anatomy-dot:#e6e6e6;
+  --anatomy-red:#ff6b6b;--anatomy-green:#6be0a0;--anatomy-blue:#6b9bff;
+  --anatomy-weight:.6px;--anatomy-ease:cubic-bezier(.32,.72,0,1);
+  --anatomy-mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --anatomy-lift:inset 0 1px 0 0 #ffffff0a,inset 0 0 0 1px #ffffff06,0 0 0 1px #00000026,0 1px 1px -.5px #00000014,0 3px 3px -1.5px #00000014,0 6px 6px -3px #00000014,0 12px 12px -6px #00000014;
+}
+.iso[data-theme="light"]{
+  --anatomy-page:#f2f2ef;--anatomy-card:#fbfbfa;--anatomy-text:#57575a;--anatomy-strong:#18181a;--anatomy-muted:#8c8c90;
+  --anatomy-paper:#fbfbfa;--anatomy-face:#ffffff;--anatomy-top:#ffffff;
+  --anatomy-shade-0:#dcdcd9;--anatomy-shade-1:#e5e5e2;--anatomy-shade-2:#ededea;--anatomy-shade-3:#f4f4f1;
+  --anatomy-lit-top:#ffffff;--anatomy-lit-shade:#eeeeeb;
+  --anatomy-hi:#26262a;--anatomy-mid:#8a8a8f;--anatomy-lo:#b4b4b8;--anatomy-faint:#d4d4d6;--anatomy-lit:#000000;
+  --anatomy-halo:#8a8a80;--anatomy-halo-opacity:.32;--anatomy-dot:#3a3a3e;
+  --anatomy-red:#e5484d;--anatomy-green:#30a46c;--anatomy-blue:#3e63dd;
+  --anatomy-lift:inset 0 1px 0 0 #ffffff,0 0 0 1px #0000000f,0 1px 1px -.5px #0000000a,0 3px 3px -1.5px #0000000a,0 6px 6px -3px #0000000a,0 12px 12px -6px #0000000a;
+}
+.iso-svg{display:block;width:100%;height:auto;overflow:visible}
+.iso-svg path,.iso-svg circle{vector-effect:non-scaling-stroke}
+.iso-fill{fill:var(--anatomy-paper);stroke:none}
+.iso-solid[data-lit]>.iso-fill{fill:var(--anatomy-face)}
+.iso-shade,.iso-top{stroke:none}
+.iso-shade[data-shade="0"]{fill:var(--anatomy-shade-0)}
+.iso-shade[data-shade="1"]{fill:var(--anatomy-shade-1)}
+.iso-shade[data-shade="2"]{fill:var(--anatomy-shade-2)}
+.iso-shade[data-shade="3"]{fill:var(--anatomy-shade-3)}
+.iso-top{fill:var(--anatomy-top)}
+.iso-solid[data-lit]>.iso-top{fill:var(--anatomy-lit-top)}
+.iso-solid[data-lit]>.iso-shade{fill:var(--anatomy-lit-shade)}
+.iso-solid[data-seamless]>.iso-shade,.iso-solid[data-seamless]>.iso-top{stroke-width:.4;stroke-linejoin:round}
+.iso-solid[data-seamless]>.iso-shade[data-shade="0"]{stroke:var(--anatomy-shade-0)}
+.iso-solid[data-seamless]>.iso-shade[data-shade="1"]{stroke:var(--anatomy-shade-1)}
+.iso-solid[data-seamless]>.iso-shade[data-shade="2"]{stroke:var(--anatomy-shade-2)}
+.iso-solid[data-seamless]>.iso-shade[data-shade="3"]{stroke:var(--anatomy-shade-3)}
+.iso-solid[data-seamless]>.iso-top{stroke:var(--anatomy-top)}
+.iso-solid[data-seamless][data-lit]>.iso-top{stroke:var(--anatomy-lit-top)}
+.iso-solid[data-seamless][data-lit]>.iso-shade{stroke:var(--anatomy-lit-shade)}
+.iso-solid[data-lit]>.iso-edge{stroke:var(--anatomy-lit)}
+.iso-halo{fill:var(--anatomy-halo);stroke:none;filter:blur(9px);opacity:var(--anatomy-halo-opacity);transform:translateY(3px)}
+.iso-line{fill:none;stroke:var(--anatomy-lo);stroke-width:var(--anatomy-weight);stroke-linecap:round;stroke-linejoin:round}
+.iso-line[data-tone="hi"]{stroke:var(--anatomy-hi)}
+.iso-line[data-tone="mid"]{stroke:var(--anatomy-mid)}
+.iso-line[data-tone="lo"]{stroke:var(--anatomy-lo)}
+.iso-line[data-tone="faint"]{stroke:var(--anatomy-faint)}
+.iso-line[data-tone="lit"]{stroke:var(--anatomy-lit)}
+.iso-line[data-tone="red"]{stroke:var(--anatomy-red)}
+.iso-line[data-tone="green"]{stroke:var(--anatomy-green)}
+.iso-line[data-tone="blue"]{stroke:var(--anatomy-blue)}
+.iso-line[data-dotted]{stroke-dasharray:.01 3.5;stroke-width:1}
+.iso-line[data-dashed]{stroke-dasharray:3 3}
+.iso-line[data-flow]{stroke-dasharray:2 6}
+.iso-wire-end{fill:var(--anatomy-paper);stroke:var(--anatomy-lo);stroke-width:var(--anatomy-weight)}
+.iso-wire[data-tone="hi"] .iso-wire-end{stroke:var(--anatomy-hi)}
+.iso-wire[data-tone="mid"] .iso-wire-end{stroke:var(--anatomy-mid)}
+.iso-wire[data-tone="faint"] .iso-wire-end{stroke:var(--anatomy-faint)}
+.iso-wire[data-tone="lit"] .iso-wire-end{stroke:var(--anatomy-lit)}
+.iso-dots circle{fill:var(--anatomy-dot);stroke:none;opacity:.32}
+.iso-dots[data-tone="hi"] circle{opacity:.85}
+.iso-dots[data-tone="mid"] circle{opacity:.45}
+.iso-dots[data-tone="lo"] circle{opacity:.22}
+.iso-dots[data-tone="faint"] circle{opacity:.12}
+.iso-face-text{fill:var(--anatomy-mid);font-family:var(--anatomy-mono);letter-spacing:.04em}
+.iso-face-text[data-tone="hi"]{fill:var(--anatomy-hi)}
+.iso-face-text[data-tone="lo"]{fill:var(--anatomy-lo)}
+.iso-face-text[data-tone="faint"]{fill:var(--anatomy-faint)}
+.tb-body{fill:var(--anatomy-shade-2);stroke:none}
+.tb-shine{fill:var(--anatomy-top);stroke:none}
+.tb-shade{fill:var(--anatomy-shade-0);stroke:none}
+.tb-ring{fill:none;stroke:var(--anatomy-lo);stroke-width:.45;stroke-linecap:butt;stroke-linejoin:round}
+.tb-ring[data-tone="mid"]{stroke:var(--anatomy-mid)}
+.tb-ring[data-tone="faint"]{stroke:var(--anatomy-faint)}
+.tb-ring[data-tone="hi"]{stroke:var(--anatomy-hi)}
+@keyframes iso-flow{to{stroke-dashoffset:-32}}
+@keyframes iso-pulse{0%,100%{opacity:.18}12%{opacity:1}40%{opacity:.18}}
+.iso-line[data-flow]{animation:iso-flow 1600ms linear infinite}
+.iso-dots circle[data-pulse]{animation:iso-pulse 1600ms steps(1,end) infinite;animation-delay:var(--pulse-at,0ms)}
+.iso-figure{margin:32px 0 36px}
+.iso-plate{position:relative;padding:52px 24px;border-radius:0;background:var(--anatomy-card);box-shadow:0 0 0 1px var(--anatomy-mid);--anatomy-paper:var(--anatomy-card)}
+.iso-plate-corners{position:absolute;inset:18px 20px;pointer-events:none}
+.iso-plate-corner{position:absolute;color:var(--anatomy-muted);font-family:var(--anatomy-mono);font-size:10.5px;line-height:1;letter-spacing:.04em;white-space:nowrap}
+.iso-plate-corner[data-corner="fig"]{top:0;left:0;color:var(--anatomy-text)}
+.iso-plate-corner[data-corner="title"]{top:0;right:0;text-transform:uppercase;letter-spacing:.1em}
+.iso-plate-corner[data-corner="hint"]{bottom:0;left:0;text-transform:uppercase;letter-spacing:.1em}
+.iso-plate-corner[data-corner="readout"]{right:0;bottom:0;color:var(--anatomy-text);font-variant-numeric:tabular-nums}
+.iso-plate .iso-svg{margin:0 auto}
+.iso-legend{display:grid;gap:8px;margin-top:12px;color:var(--anatomy-muted);font-size:13px;line-height:1.55}
+.iso-keys{display:flex;flex-wrap:wrap;gap:6px 18px}
+.iso-key{display:inline-flex;align-items:center;gap:7px}
+.iso-swatch{width:16px;height:10px;flex:none;overflow:visible}
+.iso-swatch path{fill:none;stroke:var(--anatomy-hi);stroke-width:1;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
+.iso-swatch[data-mark="raised"] path,.iso-swatch[data-mark="flat"] path{stroke:var(--anatomy-mid)}
+.iso-swatch[data-mark="lit"] path{stroke:var(--anatomy-lit)}
+.iso-swatch[data-mark="dim"] path{stroke:var(--anatomy-lo)}
+.iso-swatch[data-mark="dotted"] path{stroke-dasharray:.01 3;stroke-width:1.4}
+.iso-swatch[data-mark="dashed"] path{stroke-dasharray:3 2.5}
+.iso-swatch[data-mark="red"] path{stroke:var(--anatomy-red)}
+.iso-swatch[data-mark="green"] path{stroke:var(--anatomy-green)}
+.iso-swatch[data-mark="blue"] path{stroke:var(--anatomy-blue)}
+.iso-swatch-crease{stroke:var(--anatomy-lo)!important}
+@media (max-width:560px){.iso-plate{padding:48px 12px 70px}.iso-plate-corner[data-corner="hint"]{bottom:18px}}
+@media (prefers-reduced-motion:reduce){.iso-line[data-flow],.iso-dots circle[data-pulse]{animation:none}}
+
+*{box-sizing:border-box}
+html{color-scheme:dark}
+body[data-theme="light"]{color-scheme:light}
+body{margin:0;background:var(--anatomy-page);color:var(--anatomy-text);font:14px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+.iso-page{width:min(960px,100% - 32px);margin:64px auto 96px}
+
+.je-figure{--je-bypass:#2f6fd6;--je-core:#c98a12;--je-hot:#d9481c;--je-hot-ink:#f3d9c9;--je-liner:#f6eee6}
+.iso[data-theme="dark"] .je-figure,.iso:not([data-theme="light"]) .je-figure{--je-bypass:#6ea2ff;--je-core:#e5b04a;--je-hot:#ff7a45;--je-hot-ink:#3a2117;--je-liner:#22201e}
+.iso[data-theme="light"] .je-figure{--je-bypass:#2f6fd6;--je-core:#c98a12;--je-hot:#d9481c;--je-hot-ink:#f3d9c9;--je-liner:#f6eee6}
+.je-cut-case{fill:var(--anatomy-face)}
+.je-cut-rotor,.je-cut-gear{fill:var(--anatomy-top)}
+.je-cut-blade{fill:var(--anatomy-top)}
+.je-cut-vane{fill:var(--anatomy-shade-3)}
+.je-cut-liner{fill:var(--je-liner)}
+.je-cut-hot{fill:var(--je-hot-ink)}
+.je-engine{transition:opacity .45s var(--anatomy-ease)}
+.je-engine[data-off]{opacity:0;visibility:hidden;transition:opacity .25s ease,visibility 0s .25s}
+.je-streak{fill:none;stroke-width:1.15;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.je-streak[data-flow="bypass"]{stroke:var(--je-bypass)}
+.je-streak[data-flow="core"]{stroke:var(--je-core)}
+.je-streak[data-flow="hot"]{stroke:var(--je-hot)}
+.je-sw[data-flow="bypass"] path{stroke:var(--je-bypass);stroke-width:2}
+.je-sw[data-flow="core"] path{stroke:var(--je-core);stroke-width:2}
+.je-sw[data-flow="hot"] path{stroke:var(--je-hot);stroke-width:2}
+.iso-stage{cursor:pointer;outline:none}
+.iso-stage:focus-visible{box-shadow:0 0 0 1px var(--anatomy-mid)}
+.je-readout{white-space:pre;text-align:right;line-height:1.55}
+.je-figure .iso-plate{padding:56px 24px 64px}
+.je-years{display:flex;gap:6px;flex-wrap:wrap}
+.je-years button{font:inherit;font-family:var(--anatomy-mono);font-size:12px;color:var(--anatomy-text);background:transparent;border:0;box-shadow:0 0 0 1px var(--anatomy-lo);padding:4px 10px;cursor:pointer}
+.je-years button[aria-pressed="true"]{color:var(--anatomy-strong);box-shadow:0 0 0 1px var(--anatomy-hi)}
+.je-table{border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums;width:100%;margin-top:6px}
+.je-table th,.je-table td{text-align:right;padding:4px 6px;border-bottom:1px solid var(--anatomy-faint);vertical-align:top}
+.je-table th:nth-child(2),.je-table td:nth-child(2),.je-table th:first-child,.je-table td:first-child{text-align:left}
+.je-table th{font-weight:500;color:var(--anatomy-muted);font-size:11px}
+.je-table td small{display:block;color:var(--anatomy-muted);font-size:11px}
+.je-table tr[data-on] td{color:var(--anatomy-strong)}
+.je-sources{font-size:12px;color:var(--anatomy-muted)}
+.je-readout-m{display:none}
+.je-table-wrap{display:block;overflow-x:auto;max-width:100%}
+.je-caption{overflow-wrap:anywhere}
+.je-sources a{color:inherit}
+@media (max-width:560px){.je-figure .iso-plate{padding:44px 10px 16px;overflow:hidden}.je-figure .iso-svg{width:122%;margin:0 -11%}.je-readout,.je-figure [data-corner="hint"]{display:none}.je-readout-m{display:block;white-space:pre-line;font-family:var(--anatomy-mono);font-size:10.5px;line-height:1.5;color:var(--anatomy-text);margin-top:6px}.je-table{font-size:10.5px}.je-table th:nth-child(7),.je-table td:nth-child(7){display:none}.je-readout{font-size:9px!important;white-space:pre-wrap;max-width:92%}}
+
+.je-back,.je-fins{--anatomy-shade-0:#b4b6ba;--anatomy-shade-1:#c3c5c9;--anatomy-shade-2:#d0d2d5;--anatomy-shade-3:#dcdde0;--anatomy-top:#e6e7e9;--anatomy-lo:#9a9ca1;--anatomy-faint:#aeb0b4}
+.iso:not([data-theme="light"]) .je-back,.iso:not([data-theme="light"]) .je-fins{--anatomy-shade-0:#0b0c0d;--anatomy-shade-1:#0e0f11;--anatomy-shade-2:#121315;--anatomy-shade-3:#16171a;--anatomy-top:#1a1b1e;--anatomy-lo:#34363a;--anatomy-faint:#26282b}
+.je-hot-metal.je-cut-blade,.je-hot-metal.je-cut-vane{fill:var(--je-hot-ink)}
+
+.je-nav{display:flex;flex-wrap:wrap;gap:4px 16px;font-family:var(--anatomy-mono);font-size:12px;margin:-32px 0 28px;padding-bottom:12px;border-bottom:1px solid var(--anatomy-faint)}
+.je-nav a{color:var(--anatomy-muted);text-decoration:none}
+.je-nav a[aria-current]{color:var(--anatomy-strong)}
+.je-nav .je-home{color:var(--anatomy-text);margin-right:auto}
+.je-head h1{font-size:26px;line-height:1.25;color:var(--anatomy-strong);font-weight:600;margin:0 0 8px}
+.je-kicker{font-family:var(--anatomy-mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--anatomy-muted);margin:0 0 6px}
+.je-intro{max-width:720px;margin:0;color:var(--anatomy-text)}
+.je-pager{display:flex;justify-content:space-between;gap:16px;margin-top:28px;font-size:13px}
+.je-pager a{color:var(--anatomy-text)}
+.je-cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));margin-top:24px}
+.je-card{display:block;padding:16px 18px;background:var(--anatomy-card);box-shadow:0 0 0 1px var(--anatomy-faint);color:var(--anatomy-text);text-decoration:none}
+.je-card:hover{box-shadow:0 0 0 1px var(--anatomy-mid)}
+.je-card b{display:block;color:var(--anatomy-strong);margin:4px 0 6px;font-weight:600}
+.je-card span{font-family:var(--anatomy-mono);font-size:11px;color:var(--anatomy-muted);letter-spacing:.08em;text-transform:uppercase}
+.je-card p{margin:0;font-size:13px;line-height:1.5}
+
+.je-figure{--je-press:#2b2f36}
+.iso:not([data-theme="light"]) .je-figure{--je-press:#d8dde6}
+.je-liq-p .iso-fill,.je-liq-p .iso-shade,.je-liq-p .iso-top{fill:var(--je-press);stroke:none}
+.je-liq-t .iso-fill,.je-liq-t .iso-shade,.je-liq-t .iso-top{fill:var(--je-hot);stroke:none}
+.je-liq .iso-edge{stroke:none}
+.je-glass .iso-fill{fill:none}
+.je-glass .iso-shade{fill-opacity:.22}
+.je-glass .iso-top{fill-opacity:.5}
+.je-sw[data-flow="press"] path{stroke:var(--je-press);stroke-width:2}
+.je-liq-v0 .iso-fill,.je-liq-v0 .iso-shade,.je-liq-v0 .iso-top{fill:var(--je-press);stroke:none}
+.je-liq-fan .iso-fill,.je-liq-fan .iso-shade,.je-liq-fan .iso-top{fill:var(--je-bypass);stroke:none}
+.je-liq-core .iso-fill,.je-liq-core .iso-shade,.je-liq-core .iso-top{fill:var(--je-hot);stroke:none}
+.je-liq-vj .iso-fill,.je-liq-vj .iso-shade,.je-liq-vj .iso-top{fill:var(--je-core);stroke:none}
+.je-blade[data-off]{display:none}
+.je-cavity{fill:var(--je-cool-cav)}
+.je-tbc{fill:var(--je-tbc)}
+.je-figure{--je-cool-cav:#cfdcf2;--je-tbc:#eadfc4}
+.iso:not([data-theme="light"]) .je-figure{--je-cool-cav:#1b2433;--je-tbc:#3a3426}
+.je-liq-cool .iso-fill,.je-liq-cool .iso-shade,.je-liq-cool .iso-top{fill:var(--je-bypass);stroke:none}
+.je-sw[data-flow="vj"] path{stroke:var(--je-core);stroke-width:2}
+</style></head><body class="iso" data-theme="light"><main class="iso-page">
+<header class="je-head"><p class="je-kicker">Серія з 5 фігур · один стенд, один масштаб</p><h1>Як еволюціонував реактивний двигун</h1>
+<p class="je-intro">Ознайомчі інтерактивні фігури: двигуни 1944, 1965, 1970 років і сучасний двигун з редуктором на однаковому випробувальному стенді. Числа на фігурах пораховано з однієї моделі циклу й звірено з опублікованими даними.</p></header>
+<div class="je-cards"><a class="je-card" href="fig-1-evolution.html"><span>Рис. 1</span><b>Еволюція реактивного двигуна</b><p>Чотири двигуни на одному стенді, в одному масштабі: від Jumo 004 до двигуна з редуктором. Ступінь двоконтурності, тиск, температура, витрата палива й обидва ККД.</p></a><a class="je-card" href="fig-2-cycle.html"><span>Рис. 2</span><b>Цикл Брайтона: тиск і температура</b><p>Манометри й термометри під станціями проточної частини: що відбувається з повітрям від входу до турбіни і чому ступінь підвищення тиску визначає термічний ККД.</p></a><a class="je-card" href="fig-3-propulsive.html"><span>Рис. 3</span><b>Пропульсивний ККД: швидкість струменя</b><p>Приймачі повного тиску за соплом і швидкісна дошка: чому повільніший і масивніший струмінь витрачає менше палива на ту саму тягу.</p></a><a class="je-card" href="fig-4-gearbox.html"><span>Рис. 4</span><b>Редуктор вентилятора</b><p>Зірчастий планетарний редуктор PW1100G на стенді: п'ять сателітів, нерухоме водило, епіцикл крутить вентилятор утричі повільніше за турбіну.</p></a><a class="je-card" href="fig-5-hot-section.html"><span>Рис. 5</span><b>Гаряча частина: охолодження лопатки</b><p>Лопатка турбіни в розрізі: як охолодження дозволило піднімати температуру газу вище за точку плавлення металу.</p></a></div>
+<p class="je-sources" style="margin-top:28px">Фігури побудовано набором <a href="https://github.com/wheresryan22/anatomy">anatomy</a> (MIT). Код моделі й геометрії — у репозиторії.</p></main></body></html>
