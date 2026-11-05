@@ -3,7 +3,7 @@ import { k, kitScript } from "./kit.mjs";
 import { READOUTS } from "./model.mjs";
 import { GEOMETRY } from "./engines.mjs";
 import { flowLanes } from "./flow.mjs";
-import { CSS, CAVITY, SITE, GAUGE } from "./style.mjs";
+import { CSS, CAVITY, SITE, GAUGE, EXPLODE_CSS } from "./style.mjs";
 
 export const SERIES = [
   { slug: "fig-1-evolution", n: 1, title: "Еволюція реактивного двигуна", short: "Еволюція", about: "Чотири двигуни на одному стенді, в одному масштабі: від Jumo 004 до двигуна з редуктором. Ступінь двоконтурності, тиск, температура, витрата палива й обидва ККД." },
@@ -68,5 +68,5 @@ export function wrap(title, body, script = "") {
   return k
     .pageHtml({ title, theme: "light", body, script, width: 960 })
     .replace('<html lang="en">', '<html lang="uk">')
-    .replace("</style>", `${CSS}${CAVITY}${SITE}${GAUGE}</style>`);
+    .replace("</style>", `${CSS}${CAVITY}${SITE}${GAUGE}${EXPLODE_CSS}</style>`);
 }

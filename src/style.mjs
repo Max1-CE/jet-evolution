@@ -82,3 +82,13 @@ export const GAUGE = `
 .je-liq-cool .iso-fill,.je-liq-cool .iso-shade,.je-liq-cool .iso-top{fill:var(--je-bypass);stroke:none}
 .je-sw[data-flow="vj"] path{stroke:var(--je-core);stroke-width:2}
 `;
+export const EXPLODE_CSS = `
+.je-engine [data-mod]{transition:opacity .25s ease}
+.je-engines[data-focus] .je-engine [data-mod]:not([data-on]){opacity:.22}
+.je-engine .je-mod-cut[data-on] .iso-line{stroke:var(--anatomy-lit)}
+.je-mods{display:flex;flex-wrap:wrap;gap:6px}
+.je-mods button,.je-explode{font:inherit;font-size:12px;color:var(--anatomy-text);background:transparent;border:0;box-shadow:0 0 0 1px var(--anatomy-faint);padding:3px 9px;cursor:pointer}
+.je-mods button b{font-family:var(--anatomy-mono);font-weight:500;color:var(--anatomy-muted);margin-right:4px}
+.je-mods button[aria-pressed="true"],.je-explode[aria-pressed="true"]{color:var(--anatomy-strong);box-shadow:0 0 0 1px var(--anatomy-hi)}
+.je-explode{margin-left:auto;font-family:var(--anatomy-mono);box-shadow:0 0 0 1px var(--anatomy-mid)}
+`;
