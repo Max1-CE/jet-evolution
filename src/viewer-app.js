@@ -458,7 +458,7 @@ function spinTick(dt) {
 }
 
 // --- потік повітря під час запуску (лише для цілого зібраного апарата) -----------------------------
-const FLOW_COL = { bypass: new THREE.Color(0x2f6fd6), core: new THREE.Color(0xd99a14), hot: new THREE.Color(0xe0461a) };
+const FLOW_COL = { bypass: new THREE.Color(0x2f6fd6), core: new THREE.Color(0xd99a14), hot: new THREE.Color(0xe0461a), cool: new THREE.Color(0x2f6fd6), oil: new THREE.Color(0xe8a10c) };
 let flow = null;
 function dotTexture() {
   const c = document.createElement("canvas");
@@ -504,11 +504,13 @@ function buildFlow() {
   points.raycast = () => {};
   points.visible = false;
   points.renderOrder = 2;
+  // «рентген»: потік усередині деталей (масло в осях і підшипниках) видно крізь метал
+  if (F.xray) { mat.depthTest = false; mat.size = 4.5; points.renderOrder = 10; }
   frameGroup.add(points);
   flow = { points, parts, F };
 }
 function flowPlanes() {
-  if (!flow) return;
+  if (!flow || flow.F.xray) return;
   const pl = flow.points.material.clippingPlanes;
   const want = cutOn ? cutPlanes.length : 0;
   if (pl.length !== want) { pl.length = 0; for (let k = 0; k < want; k++) pl.push(new THREE.Plane()); flow.points.material.needsUpdate = true; }
@@ -542,7 +544,7 @@ function flowTick(dt, power) {
       p.k = k;
       const a = path.pts[k], b = path.pts[k + 1], f = Math.min(1, (p.u - path.cum[k]) / (path.cum[k + 1] - path.cum[k] || 1));
       pos[i * 3] = a[0] + (b[0] - a[0]) * f; pos[i * 3 + 1] = a[1] + (b[1] - a[1]) * f; pos[i * 3 + 2] = a[2] + (b[2] - a[2]) * f;
-      const c = path.kind === "hot" ? FLOW_COL.hot : FLOW_COL.bypass;
+      const c = FLOW_COL[path.kind] ?? FLOW_COL.bypass;
       col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
     }
     flow.points.geometry.attributes.position.needsUpdate = true;

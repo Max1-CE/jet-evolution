@@ -133,6 +133,31 @@ const tubeZ = (cx, cy, rIn, rOut, z0, z1, m) => ({ t: "lathe", ax: "z", poly: rI
 const r2 = (x) => Math.round(x * 100) / 100;
 const STEEL = ["цементована легована сталь: поверхня зубів тверда, серцевина в'язка"];
 
+/** Масло: опора водила → канали плити → порожнисті осі → підшипники ковзання; форсунки — у зачеплення; злив. */
+function oilFlow() {
+  const r1 = (x) => Math.round(x * 10) / 10;
+  const P3 = (r, a, z) => [r * Math.cos(a), r * Math.sin(a), z];
+  const paths = [];
+  const add = (pts, n, speed = 34) => paths.push({ kind: "oil", speed, n, pts: pts.map((p) => p.map(r1)) });
+  const zp = (Z_CAR[0] + Z_CAR[1]) / 2;
+  PSI.forEach((psi) => {
+    const supply = [P3(26, psi - 0.35, -4), P3(26, psi - 0.35, zp), P3(A, psi, zp), P3(A, psi, (Z_GEAR[0] + Z_GEAR[1]) / 2)];
+    const [cx, cy] = [A * Math.cos(psi), A * Math.sin(psi)];
+    // з осі радіально в зазор підшипника, далі вгору по зазору й назовні
+    for (const b of [0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2]) {
+      const gap = (z) => [cx + 4.95 * Math.cos(b), cy + 4.95 * Math.sin(b), z];
+      add([...supply, gap((Z_GEAR[0] + Z_GEAR[1]) / 2), gap(Z_GEAR[1] - 0.6), [cx + 9 * Math.cos(b), cy + 9 * Math.sin(b), Z_GEAR[1] + 1.5], [cx + 16 * Math.cos(b), cy + 16 * Math.sin(b), Z_GEAR[1] - 3]], 11);
+    }
+    // форсунки: від осі до зачеплень «сонце — сателіт» і «сателіт — епіцикл», потім злив униз
+    const top = Z_GEAR[1] + 4;
+    add([...supply.slice(0, 3), P3(A, psi, top), P3(RS + 1.5, psi, top), P3(RS + 1.5, psi, Z_GEAR[0] + 3), P3(RS + 1.5, psi, Z_CAR[1] + 1), P3(RS - 6, psi + 0.2, 4)], 14, 40);
+    add([...supply.slice(0, 3), P3(A, psi, top), P3(RR - 1.5, psi, top), P3(RR - 1.5, psi, Z_GEAR[0] + 3), P3(RR + 4, psi + 0.05, Z_RING[0] - 1), P3(RING_OUT + 14, psi + 0.12, -6)], 14, 40);
+  });
+  // злив з епіцикла: відцентрова сила відкидає масло назовні, у жолоб корпусу
+  for (let k = 0; k < 12; k++) { const a = (k / 12) * 2 * Math.PI + 0.2; add([P3(RR - 0.5, a, (Z_RING[0] + Z_RING[1]) / 2), P3(RING_OUT + 1, a + 0.05, (Z_RING[0] + Z_RING[1]) / 2), P3(RING_OUT + 16, a + 0.15, 10), P3(RING_OUT + 18, a + 0.2, -8)], 4, 30); }
+  return { paths, xray: true };
+}
+
 function gearApp() {
   const ZG = Z_GEAR, ZRg = Z_RING;
   const top = ZG[1] + 2.4;
@@ -156,7 +181,8 @@ function gearApp() {
   return {
     frame: "z", cutSingle: true,
     cut: [[-1, 0, 0, 0], [0, 1, 0, 0]],
-    spools: [{ id: "sun", name: "вал ТНТ", rpm: 9000, tau: 1.6 }, { id: "ring", name: "вентилятор", rpm: -9000 * ZS / ZR, tau: 1.6, hide: false }],
+    spools: [{ id: "sun", name: "вал ТНТ", rpm: 9000, tau: 1.6 }, { id: "ring", name: "вентилятор", rpm: -9000 * ZS / ZR, tau: 1.6 }, { id: "oil", rpm: 1, tau: 0.9, text: "масло під тиском — до підшипників і зачеплень" }],
+    flow: oilFlow(),
     view: [1, 0.85, 1.25],
     root: {
       id: "gearbox", name: "Редуктор вентилятора", kicker: "PW1100G · зірчаста планетарна передача",
