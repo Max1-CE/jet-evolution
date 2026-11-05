@@ -3,7 +3,8 @@ import { k, kitScript } from "./kit.mjs";
 import { READOUTS } from "./model.mjs";
 import { GEOMETRY } from "./engines.mjs";
 import { flowLanes } from "./flow.mjs";
-import { CSS, CAVITY, SITE, GAUGE, EXPLODE_CSS } from "./style.mjs";
+import { CSS, CAVITY, SITE, GAUGE, EXPLODE_CSS, PARTS_CSS } from "./style.mjs";
+import { VIEWER_CSS, viewerBlock } from "./viewer.mjs";
 
 export const SERIES = [
   { slug: "fig-1-evolution", n: 1, title: "Еволюція реактивного двигуна", short: "Еволюція", about: "Чотири двигуни на одному стенді, в одному масштабі: від Jumo 004 до двигуна з редуктором. Ступінь двоконтурності, тиск, температура, витрата палива й обидва ККД." },
@@ -43,7 +44,7 @@ export const FLOW_KEYS = [SWATCH("bypass", "повітря зовнішньог�
 export const YEAR_BUTTONS = (labels) => `<span class="je-years" role="group" aria-label="Положення ручки">${labels.map((l, i) => `<button type="button" data-year="${i}">${l}</button>`).join("")}</span>`;
 
 /** Повна сторінка однієї фігури. */
-export function figurePage({ n, svg, hint, stageLabel, valuemax = 3, initial = 0, legend, script, intro = "" }) {
+export function figurePage({ n, svg, hint, stageLabel, valuemax = 3, initial = 0, legend, script, intro = "", apps = null }) {
   const f = SERIES[n - 1];
   const body = `${nav(n)}
 <header class="je-head"><p class="je-kicker">Рис. ${n} із ${SERIES.length}</p><h1>${f.title}</h1>${intro ? `<p class="je-intro">${intro}</p>` : ""}</header>
@@ -60,7 +61,7 @@ export function figurePage({ n, svg, hint, stageLabel, valuemax = 3, initial = 0
   </div>
   <figcaption class="iso-legend">${legend}</figcaption>
 </figure>
-${pager(n)}`;
+${pager(n)}${apps ? viewerBlock(apps) : ""}`;
   return wrap(`Рис. ${n}. ${f.title}`, body, kitScript() + script);
 }
 
@@ -68,5 +69,5 @@ export function wrap(title, body, script = "") {
   return k
     .pageHtml({ title, theme: "light", body, script, width: 960 })
     .replace('<html lang="en">', '<html lang="uk">')
-    .replace("</style>", `${CSS}${CAVITY}${SITE}${GAUGE}${EXPLODE_CSS}</style>`);
+    .replace("</style>", `${CSS}${CAVITY}${SITE}${GAUGE}${EXPLODE_CSS}${PARTS_CSS}${VIEWER_CSS}</style>`);
 }

@@ -340,9 +340,10 @@ function engineSvg(geo, engine, index, initial) {
     const sub = { ...geo, parts: m.parts, rows: m.rows };
     const half = backHalf(m.parts);
     const g = (body, cls = "") => `<g data-mod="${id}"${cls ? ` class="${cls}"` : ""}>${body}</g>`;
-    layers.inward.push(g(runs(half.inward)));
+    const seam = (body) => `<g data-mod="${id}" class="iso-solid" data-seamless>${body}</g>`;
+    layers.inward.push(seam(runs(half.inward)));
     layers.fins.push(g(backBlades(m.rows, geo.id)));
-    layers.outward.push(g(runs(half.outward)));
+    layers.outward.push(seam(runs(half.outward)));
     layers.section.push(g(section(sub) + details(sub, id === "comb") + (id === "nac" ? "" : ""), "je-mod-cut"));
   }
   // зовнішні поверхні: спершу внутрішні тіла, наостанок оболонки

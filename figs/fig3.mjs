@@ -5,6 +5,8 @@ import { enginesSvg } from "../src/render.mjs";
 import { LIVE } from "../src/live.mjs";
 import { GEOMETRY } from "../src/engines.mjs";
 import { figurePage, engineData, comma, FLOW_KEYS, YEAR_BUTTONS } from "../src/page.mjs";
+import { explodeScript, EXPLODE_UI } from "../src/explode.mjs";
+import { engineApp } from "../src/catalog.mjs";
 
 const { P, M, Y0, ZC } = STAND;
 const BOARD = { x: -84, y: -150, w: 8, d: 46, r: 1.2 }; // дошка стоїть за струменем
@@ -79,7 +81,7 @@ export function build() {
     return `${d.name}: на крейсері (M 0,8, 11 км) кожен кілограм повітря виходить у середньому на ${Math.round(ex)} м/с швидшим, ніж летить літак. Тяга пропорційна (vj − v0), а втрачена кінетична енергія — (vj − v0)²: чим менша різниця при тій самій тязі, тим менше енергії зникає в слідові. ηp = 2/(1 + vj/v0) = ${comma(d.etaP, 2)}.`;
   });
   const note = " Швидкості пораховано моделлю циклу на крейсері; vj — еквівалентна швидкість v0 + F/ṁ усього повітря. На стенді літак не летить (v0 = 0), тож дошка показує крейсерські значення, а частинки в струмені — стендові.";
-  const legend = `${YEAR_BUTTONS(DATA.map((d) => d.year))}<span class="iso-keys"><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="press" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>v0 — швидкість польоту</span><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="bypass" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>струмінь зовнішнього контуру</span><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="hot" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>струмінь ядра</span><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="vj" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>vj — еквівалентна, по всьому повітрю</span></span><span class="iso-caption je-caption"></span>`;
+  const legend = `${EXPLODE_UI(DATA.map((d) => d.year))}<span class="iso-keys"><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="press" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>v0 — швидкість польоту</span><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="bypass" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>струмінь зовнішнього контуру</span><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="hot" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>струмінь ядра</span><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="vj" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>vj — еквівалентна, по всьому повітрю</span></span><span class="iso-caption je-caption"></span>`;
   const extra = `
 const VAL = ${JSON.stringify(VAL)};
 const RAKE_Y = ${JSON.stringify(RAKE_Y)};
@@ -115,13 +117,14 @@ HOOKS.tick.push((dt, calm, cur) => {
 drawBoard();
 `;
   return figurePage({
+    apps: [0, 1, 2, 3].map(engineApp),
     n: 3,
     svg,
-    hint: "Натисніть ручку або ← →",
+    hint: "Ручка або ← → · E — розібрати · R — 3D",
     stageLabel: "Перемикач року: стрілки змінюють двигун",
     initial: INITIAL,
     legend,
     intro: "Тягу дає різниця швидкостей: повітря виходить швидше, ніж увійшло. Ту саму тягу можна отримати, розігнавши мало повітря дуже сильно або багато — трохи. Другий шлях втрачає менше енергії, і саме туди вела вся еволюція двигуна.",
-    script: LIVE({ P, DATA, INITIAL, STAND, captions, note }) + extra,
+    script: LIVE({ P, DATA, INITIAL, STAND, captions, note }) + explodeScript() + extra,
   });
 }

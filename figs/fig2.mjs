@@ -5,6 +5,8 @@ import { enginesSvg } from "../src/render.mjs";
 import { LIVE } from "../src/live.mjs";
 import { GEOMETRY } from "../src/engines.mjs";
 import { figurePage, engineData, comma, FLOW_KEYS, YEAR_BUTTONS } from "../src/page.mjs";
+import { explodeScript, EXPLODE_UI } from "../src/explode.mjs";
+import { engineApp } from "../src/catalog.mjs";
 
 const { P, M, Y0, ZC } = STAND;
 const RAIL_X = 40;
@@ -78,7 +80,7 @@ export function build() {
     return `${d.name}: компресор стискає повітря з ${comma(s[0].p, 2)} до ${comma(s[2].p, 1)} бар, і воно нагрівається до ${Math.round(s[2].T)} K ще до камери. Камера додає тепло майже без зміни тиску — до ${Math.round(s[3].T)} K; турбіна забирає частину енергії на привід компресора${d.bpr ? " і вентилятора" : ""}, решта розганяє струмінь. Ідеальний ηt = 1 − π^(−0,4/1,4) = ${comma(d.etaT, 2)} залежить лише від π.`;
   });
   const note = " Значення — з тієї самої моделі циклу, що й на Рис. 1, для стенда (M = 0, 288 K, 1 атм): повний тиск і температура в станціях 2 (вхід), 13 (за вентилятором), 3 (за компресором), 4 (перед турбіною), 5 (за турбіною). Шкали лінійні: 0–50 бар і 0–2000 K. У Jumo 004 немає вентилятора, тож прилад 13 стоїть на кінці рейки й показує атмосферу.";
-  const legend = `${YEAR_BUTTONS(DATA.map((d) => d.year))}<span class="iso-keys"><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="press" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>манометр: повний тиск, бар</span><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="hot" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>термометр: повна температура, K</span>${FLOW_KEYS}</span><span class="iso-caption je-caption"></span><span class="je-table-wrap"><table class="je-table je-stations"></table></span>`;
+  const legend = `${EXPLODE_UI(DATA.map((d) => d.year))}<span class="iso-keys"><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="press" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>манометр: повний тиск, бар</span><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="hot" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>термометр: повна температура, K</span>${FLOW_KEYS}</span><span class="iso-caption je-caption"></span><span class="je-table-wrap"><table class="je-table je-stations"></table></span>`;
   const extra = `
 const ST = ${JSON.stringify(STATIONS)};
 const RAIL_X = ${RAIL_X}, Z0 = ${Z0};
@@ -125,18 +127,20 @@ HOOKS.tick.push((dt, calm, cur) => {
     for (const key of ["y", "hp", "ht", "tz"]) { const d = t[key] - gs[i][key]; if (Math.abs(d) > 0.02) { gs[i][key] += d * e; moving = true; } else gs[i][key] = t[key]; }
   });
   drawGauges();
+  taps.style.opacity = String(Math.max(0, 1 - explodeShare * 4));
   return moving;
 });
 drawGauges();
 `;
   return figurePage({
+    apps: [0, 1, 2, 3].map(engineApp),
     n: 2,
     svg,
-    hint: "Натисніть ручку або ← →",
+    hint: "Ручка або ← → · E — розібрати · R — 3D",
     stageLabel: "Перемикач року: стрілки змінюють двигун",
     initial: INITIAL,
     legend,
     intro: "Під двигуном на рейці стоять п'ять приладів — кожен навпроти своєї станції. Манометр показує, наскільки стиснуте повітря, термометр — наскільки воно гаряче. Що вищий тиск за компресором, то більшу частку тепла цикл перетворює на роботу.",
-    script: LIVE({ P, DATA, INITIAL, STAND, captions, note }) + extra,
+    script: LIVE({ P, DATA, INITIAL, STAND, captions, note }) + explodeScript() + extra,
   });
 }

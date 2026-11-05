@@ -92,3 +92,8 @@ export const EXPLODE_CSS = `
 .je-mods button[aria-pressed="true"],.je-explode[aria-pressed="true"]{color:var(--anatomy-strong);box-shadow:0 0 0 1px var(--anatomy-hi)}
 .je-explode{margin-left:auto;font-family:var(--anatomy-mono);box-shadow:0 0 0 1px var(--anatomy-mid)}
 `;
+export const PARTS_CSS = `
+.je-parts [data-mod]{transition:opacity .25s ease}
+.je-parts[data-focus] [data-mod]:not([data-on]){opacity:.22}
+.je-parts [data-mod][data-on] .iso-line[data-tone="hi"]{stroke:var(--anatomy-lit)}
+`;

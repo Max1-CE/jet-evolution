@@ -2,6 +2,8 @@
 // сонячна шестерня на валу ТНТ, п'ять сателітів на нерухомих осях, епіцикл крутить вентилятор.
 import { k, G } from "../src/kit.mjs";
 import { figurePage, comma, YEAR_BUTTONS } from "../src/page.mjs";
+import { EXPLODE_UI } from "../src/explode.mjs";
+import { pts } from "../src/catalog.mjs";
 
 const W = 920;
 const H = 600;
@@ -28,7 +30,7 @@ const KNOB_ANGLES = [-62, -21, 21, 62].map((d) => (d * Math.PI) / 180);
 const DIAL_MAX = 10000;
 const FAN_D = 2.06;
 
-const P = k.fitProjection([...k.boxCorners(BASE, -22, 0), [0, 0, 44], [-RING_OUT, RING_OUT, 40], [RING_OUT, -RING_OUT, 40]], W, H, { pad: 40, azimuth: 30, elevation: 32 });
+const P = k.fitProjection([...k.boxCorners(BASE, -22, 0), [0, 0, 44], [-RING_OUT, RING_OUT, 40], [RING_OUT, -RING_OUT, 40], [-RING_OUT * 0.7, -RING_OUT * 0.7, Z_RING[1] + 64], [RING_OUT * 0.7, RING_OUT * 0.7, Z_RING[1] + 64]], W, H, { pad: 40, azimuth: 30, elevation: 32 });
 const S = (paths, style) => k.solidSvg(paths, style);
 const L = (d, style) => k.lineSvg(d, style);
 const D = (pts, style) => k.dotsSvg(k.pointsAt(pts, P), style);
@@ -60,12 +62,14 @@ function base() {
   out.push(D(k.corners(BASE, 10).map(([x, y]) => [x, y, 0]), { size: 0.55, tone: "mid" }));
   for (const [x, y] of k.corners(BASE, 10)) out.push(L(k.ring(x, y, 2.4, 0, P, 16), { tone: "lo" }));
   // опора й нерухоме водило
+  out.push(`<g data-mod="carrier">`);
   out.push(S(k.cylinder(0, 0, 44, 0, 3, P, 96, 0.6), { tone: "mid" }));
   out.push(D(Array.from({ length: 10 }, (_, i) => [40 * Math.cos((i * Math.PI) / 5), 40 * Math.sin((i * Math.PI) / 5), 3]), { size: 0.55, tone: "mid" }));
   out.push(S(k.cylinder(0, 0, 30, 3, Z_CAR[0] - 3, P, 80, 0.6), { tone: "mid", inner: L(k.sideArc(0, 0, 30, 8, P, 60), { tone: "faint" }) }));
   // зірчасте водило: диск з п'ятьма проушинами
   out.push(S(k.cylinder(0, 0, A + 8, Z_CAR[0], Z_CAR[1] - Z_CAR[0], P, 120, 0.8), { tone: "hi", crease: "lo" }));
   out.push(L(k.ring(0, 0, A - 12, Z_CAR[1], P, 96), { tone: "faint" }));
+  out.push(`</g>`);
   // кільцева канавка під епіцикл і його опорний бурт
   out.push(S(k.cylinder(0, 0, RING_OUT + 3, 3, Z_RING[0] - 3, P, 140), { tone: "lo" }));
   return out.join("");
@@ -83,7 +87,7 @@ function ringWall() {
     bot.push(k.iso([RR * Math.cos(a), RR * Math.sin(a), Z_CAR[1]], P));
   }
   const pts = [...top, ...bot.reverse()];
-  return `<path class="iso-shade je-ringwall" data-shade="1" d="${k.pathOf(pts, true)}"/>`;
+  return `<g data-part="ringwall" data-mod="ring"><path class="iso-shade je-ringwall" data-shade="1" d="${k.pathOf(pts, true)}"/></g>`;
 }
 
 function console() {
@@ -112,13 +116,91 @@ function console() {
   return out.join("");
 }
 
+
+// --- 3D-перегляд: редуктор як дерево деталей ------------------------------------------------------
+function teethRing(cx, cy, n, pitch, phase, inward) {
+  const w = (2 * Math.PI) / n, add = MOD, ded = 1.25 * MOD;
+  const r0 = inward ? pitch + ded : pitch - ded, r1 = inward ? pitch - add : pitch + add;
+  const ring = [];
+  for (let i = 0; i < n; i++) {
+    const c = phase + i * w;
+    for (const [da, r] of [[-0.3, r0], [-0.15, r1], [0.15, r1], [0.3, r0]]) ring.push([cx + r * Math.cos(c + da * w), cy + r * Math.sin(c + da * w)]);
+  }
+  return pts(ring);
+}
+const circle = (cx, cy, r, n = 64) => pts(Array.from({ length: n }, (_, i) => [cx + r * Math.cos((i / n) * 2 * Math.PI), cy + r * Math.sin((i / n) * 2 * Math.PI)]));
+const tubeZ = (cx, cy, rIn, rOut, z0, z1, m) => ({ t: "lathe", ax: "z", poly: rIn > 0 ? [[z0, rIn], [z1, rIn], [z1, rOut], [z0, rOut]] : [[z0, 0], [z1, 0], [z1, rOut], [z0, rOut]], m, at: [[cx, cy]], seg: 64 });
+const r2 = (x) => Math.round(x * 100) / 100;
+const STEEL = ["цементована легована сталь: поверхня зубів тверда, серцевина в'язка"];
+
+function gearApp() {
+  const ZG = Z_GEAR, ZRg = Z_RING;
+  const top = ZG[1] + 2.4;
+  const planets = PSI.map((psi, i) => {
+    const cx = A * Math.cos(psi), cy = A * Math.sin(psi);
+    return {
+      id: `planet${i + 1}`, name: `Сателіт ${i + 1}`,
+      func: "Обертається на нерухомій осі водила: зуби сонячної шестерні штовхають його з одного боку, а він — епіцикл з другого. П'ять сателітів ділять між собою момент турбіни НТ.",
+      mat: [...STEEL, "підшипник ковзання: масляна плівка між віссю й сателітом"],
+      ex: [r2(Math.cos(psi) * 24), r2(Math.sin(psi) * 24), 12],
+      facts: [["Зубів", String(ZP)]],
+      kids: [
+        { id: "gear", name: "Зубчаста шестерня", func: "Зовнішні зуби одночасно зачіпляються із сонячною шестернею і з епіциклом.", mat: STEEL, geo: [{ t: "ext", shape: teethRing(cx, cy, ZP, RP, PLANET0[i], false), holes: [circle(cx, cy, 5.6, 40)], z0: ZG[0], z1: ZG[1], m: "gear" }], ex: [0, 0, 16] },
+        { id: "bearing", name: "Підшипник ковзання", func: "Втулка між сателітом і віссю. Під тиском подається масло, і сателіт «пливе» на масляній плівці без тертя метал об метал — так редуктор обходиться без роликових підшипників.", mat: ["сталева втулка з антифрикційним шаром"], geo: [tubeZ(cx, cy, 4.3, 5.6, ZG[0] + 0.5, ZG[1] - 0.5, "brass")], ex: [0, 0, 6] },
+      ],
+    };
+  });
+  const pins = PSI.map((psi) => [r2(A * Math.cos(psi)), r2(A * Math.sin(psi))]);
+  const boltR = (RR + 2 + RING_OUT + 7) / 2;
+  const bolts = Array.from({ length: 12 }, (_, i) => { const a = (i / 12) * 2 * Math.PI + 0.13; return [r2(boltR * Math.cos(a)), r2(boltR * Math.sin(a))]; });
+  return {
+    frame: "z", cutSingle: true,
+    cut: [[-1, 0, 0, 0], [0, 1, 0, 0]],
+    view: [1, 0.85, 1.25],
+    root: {
+      id: "gearbox", name: "Редуктор вентилятора", kicker: "PW1100G · зірчаста планетарна передача",
+      func: "Передає момент від вала турбіни НТ до вентилятора й знижує оберти ≈3:1. Водило нерухоме, тому сонячна шестерня й епіцикл обертаються в різні боки. Через редуктор іде близько 25 МВт.",
+      mat: ["цементовані сталі — шестерні", "сталь — водило й корпус", "масло під тиском — змащення й охолодження"],
+      facts: [["Передаточне число", `${ZR}/${ZS} = ${comma(ZR / ZS, 4)}`], ["Зубів: сонячна / сателіт / епіцикл", `${ZS} / ${ZP} / ${ZR}`], ["Сателітів", String(N)], ["Умова складання", `(${ZS} + ${ZR}) / ${N} = ${(ZS + ZR) / N}`]],
+      kids: [
+        {
+          id: "ring", name: "Епіцикл", func: "Вінець із внутрішніми зубами. Через фланець кріпиться до вала вентилятора й крутить його втричі повільніше за вал турбіни — і в протилежний бік.", mat: STEEL, ex: [0, 0, 66],
+          facts: [["Зубів", String(ZR)]],
+          kids: [
+            { id: "rim", name: "Зубчастий вінець", func: "Кільце з внутрішніми зубами, у які входять усі п'ять сателітів. У справжньому редукторі зуби шевронні (дві косі половини, без осьової сили); тут для наочності — прямі.", mat: STEEL, geo: [{ t: "ext", shape: circle(0, 0, RING_OUT, 128), holes: [teethRing(0, 0, ZR, RR, RING0, true)], z0: ZRg[0], z1: ZRg[1], m: "gear" }], ex: [0, 0, 0] },
+            { id: "flange", name: "Фланець вала вентилятора", func: "З'єднує епіцикл з валом вентилятора; трохи пружний, щоб вирівнювати навантаження між сателітами.", mat: ["високоміцна сталь"], geo: [tubeZ(0, 0, RR + 2, RING_OUT + 7, ZRg[1], ZRg[1] + 3.5, "rotor")], ex: [0, 0, 16] },
+            { id: "bolts", name: "Болти ×12", func: "Стягують фланець з вінцем; момент передається тертям у стику й самими болтами.", mat: ["легована сталь"], geo: [{ t: "lathe", ax: "z", poly: [[ZRg[1] - 6, 0], [ZRg[1] + 6.5, 0], [ZRg[1] + 6.5, 1.9], [ZRg[1] + 5, 1.9], [ZRg[1] + 5, 1.1], [ZRg[1] - 6, 1.1]], m: "fixture", seg: 6, at: bolts }], ex: [0, 0, 32] },
+          ],
+        },
+        {
+          id: "sun", name: "Сонячна шестерня", func: "Найшвидша деталь редуктора: сидить на шліцах вала турбіни НТ (≈9 000 об/хв) і крутить усі п'ять сателітів.", mat: STEEL, ex: [0, 0, 40],
+          facts: [["Зубів", String(ZS)]],
+          kids: [
+            { id: "sun-gear", name: "Зубчастий вінець", func: "Зовнішні зуби, що зачіпляються з п'ятьма сателітами одночасно.", mat: STEEL, geo: [{ t: "ext", shape: teethRing(0, 0, ZS, RS, 0, false), holes: [circle(0, 0, 6.2, 48)], z0: ZG[0], z1: ZG[1], m: "gear" }, tubeZ(0, 0, 6.2, 8, ZG[1], ZG[1] + 9, "gear")], ex: [0, 0, 16] },
+            { id: "sun-shaft", name: "Шліцьовий вал ТНТ", func: "Кінець вала турбіни НТ зі шліцами: передає момент і дає шестерні трохи самовстановлюватися між сателітами.", mat: ["високоміцна сталь"], geo: [tubeZ(0, 0, 0, 6, -10, ZG[1] + 6, "shaft")], ex: [0, 0, -30] },
+          ],
+        },
+        { id: "planets", name: `Сателіти ×${N}`, func: "Сателіти сидять на нерухомих осях і лише обертаються на місці — це «зірчаста» схема (у звичайній планетарній передачі водило з осями оберталося б).", mat: STEEL, ex: [0, 0, 22], kids: planets, facts: [["Зубів у кожного", String(ZP)]] },
+        {
+          id: "carrier", name: "Водило з осями", func: "Нерухома рама: прикручена до корпусу двигуна, несе осі сателітів і крізь них подає масло до підшипників.", mat: ["сталь"], ex: [0, 0, -18],
+          kids: [
+            { id: "plate", name: "Плита водила", func: "Тримає п'ять осей на однаковій відстані від центру, щоб зуби всіх сателітів навантажувались рівно.", mat: ["сталь"], geo: [{ t: "ext", shape: circle(0, 0, A + 8, 120), holes: [circle(0, 0, 9, 40)], z0: Z_CAR[0], z1: Z_CAR[1], m: "rotor" }], ex: [0, 0, 0] },
+            { id: "pins", name: `Осі сателітів ×${N}`, func: "Порожнисті осі: усередині — канали, якими масло йде до підшипників ковзання.", mat: ["цементована сталь"], geo: [{ t: "lathe", ax: "z", poly: [[Z_CAR[1], 0], [top, 0], [top, 6.5], [ZG[1], 6.5], [ZG[1], 4.2], [Z_CAR[1], 4.2]], m: "shaft", seg: 40, at: pins }], ex: [0, 0, 26] },
+            { id: "mount", name: "Опора на корпус", func: "Через неї водило кріпиться до нерухомого корпусу; пружні елементи гасять перекоси від прогину двигуна.", mat: ["сталь / титан"], geo: [tubeZ(0, 0, 22, 30, 3, Z_CAR[0], "case")], ex: [0, 0, -14] },
+          ],
+        },
+      ],
+    },
+  };
+}
+
 export function build() {
   const INITIAL = 3;
   const svg = k.figureSvg({
     width: W,
     height: H,
     label: "Зірчастий планетарний редуктор на стенді, вісь вертикальна: у центрі сонячна шестерня на валу турбіни низького тиску, навколо п'ять сателітів на нерухомих осях водила, зовні епіцикл, з'єднаний з вентилятором. Два тахометри показують оберти турбіни й вентилятора; ручка задає режим.",
-    body: [base(), ringWall(), `<g data-part="gears"></g>`, `<g data-part="ring"></g>`, console()],
+    body: [`<g class="je-parts">`, base(), ringWall(), `<g data-part="gears"></g>`, `<g data-part="ring" data-mod="ring"></g>`, `</g>`, console()],
   });
   const tip = (n) => (Math.PI * FAN_D * n) / 60;
   const captions = RPM.map((n) => {
@@ -128,7 +210,7 @@ export function build() {
       : `Вал ТНТ — ${n.toLocaleString("uk")} об/хв, вентилятор — ${Math.round(f).toLocaleString("uk")} об/хв у протилежний бік (÷${comma(ZR / ZS, 4)}). Кінці лопатей вентилятора ∅ 2,06 м ідуть зі швидкістю ${Math.round(tip(f))} м/с; на прямому валу було б ${Math.round(tip(n))} м/с — утричі більше за швидкість звуку.`;
   });
   const note = ` Числа зубів ілюстративні (Zс = ${ZS}, Zсат = ${ZP}, Zеп = ${ZR}, п'ять сателітів: (${ZS} + ${ZR}) / 5 = 26 — умова складання); ${ZR}/${ZS} = 3,0625 ≈ 3:1, як у PW1100G. На фігурі обертання сповільнене, але співвідношення швидкостей справжнє. Масштаб — крупний план.`;
-  const legend = `${YEAR_BUTTONS(RPM.map((n) => (n ? n.toLocaleString("uk") + " об/хв" : "стоп")))}<span class="iso-keys"><span class="iso-key"><svg class="iso-swatch" data-mark="lit" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>мітки на валу й епіциклі: видно напрям і швидкість</span></span><span class="iso-caption je-caption"></span><span class="je-sources">Співвідношення ≈3:1 (ТНТ ≈ 9 000 об/хв, вентилятор ≈ 3 000 об/хв) і зірчаста схема з п'ятьма сателітами — за відкритими описами PW1000G і патентами P&amp;W (<a href="https://en.wikipedia.org/wiki/Geared_turbofan">Geared turbofan</a>).</span>`;
+  const legend = `${EXPLODE_UI(RPM.map((n) => (n ? n.toLocaleString("uk") + " об/хв" : "стоп")), "редуктор")}<span class="iso-keys"><span class="iso-key"><svg class="iso-swatch" data-mark="lit" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>мітки на валу й епіциклі: видно напрям і швидкість</span></span><span class="iso-caption je-caption"></span><span class="je-sources">Співвідношення ≈3:1 (ТНТ ≈ 9 000 об/хв, вентилятор ≈ 3 000 об/хв) і зірчаста схема з п'ятьма сателітами — за відкритими описами PW1000G і патентами P&amp;W (<a href="https://en.wikipedia.org/wiki/Geared_turbofan">Geared turbofan</a>).</span>`;
   const script = `
 const P = ${JSON.stringify(P)};
 const ZS = ${ZS}, ZP = ${ZP}, ZR = ${ZR}, MOD = ${MOD}, RS = ${RS}, RP = ${RP}, RR = ${RR}, A = ${A}, RING_OUT = ${RING_OUT};
@@ -174,13 +256,33 @@ function gear(cx, cy, n, pitch, phase, marker) {
   return out;
 }
 function ring_(cx, cy, r, z) { const pts = []; for (let i = 0; i <= 48; i++) { const a = i / 48 * 2 * Math.PI; pts.push(P2(cx + r * Math.cos(a), cy + r * Math.sin(a), z)); } return path(pts, true); }
+const ZC1 = ${Z_CAR[1]};
+const LIFT = { ring: 62, sun: 40, planets: 20 };
+const PART_TEXT = { ring: ["Епіцикл", "зубчастий вінець з внутрішніми зубами; через фланець крутить вал вентилятора"], sun: ["Сонячна шестерня", "сидить на шліцах вала турбіни низького тиску"], planets: ["Сателіти ×5", "обертаються на нерухомих осях і передають момент від сонячної шестерні до епіцикла"], carrier: ["Водило з осями", "прикручене до корпусу двигуна, тому не обертається (зірчаста схема)"] };
+const lift = { ring: { x: 0, v: 0, delay: 0 }, sun: { x: 0, v: 0, delay: 0 }, planets: { x: 0, v: 0, delay: 0 } };
+const ringWallEl = svg.querySelector('[data-part="ringwall"]'), partsEl = svg.querySelector(".je-parts");
+const explodeBtn = document.querySelector(".je-explode"), modsEl = document.querySelector(".je-mods");
+let apart = false, focus = null, pinned = null;
 let thS = 0, rpm = RPM[${INITIAL}], target = 3, knob = ANGLES[3], touring = !still.matches, tour = 0, idle = 0, visible = false, frame = 0, last = 0;
 function draw() {
   const thP = PLANET0.map((p0) => p0 - thS * ZS / ZP), thR = RING0 - thS * ZS / ZR;
   const items = [];
-  PSI.forEach((psi, i) => { const cx = A * Math.cos(psi), cy = A * Math.sin(psi); items.push({ d: cx * V[0] + cy * V[1], svg: gear(cx, cy, ZP, RP, thP[i], false) + solidSvg(cylinder(cx, cy, 6.5, ZG[1], 2.4, P, 28, 0.4), { tone: "mid" }) + dotsSvg([P2(cx, cy, ZG[1] + 2.4)], { size: 0.8, tone: "mid" }) }); });
-  items.push({ d: 0, svg: gear(0, 0, ZS, RS, thS, false) + solidSvg(cylinder(0, 0, 8, ZG[1], 9, P, 40, 0.5), { tone: "hi", crease: "lo" }) + '<path class="iso-line" data-tone="lit" data-free="start" style="stroke-width:1.2" d="' + path([P2(Math.cos(thS) * 1.5, Math.sin(thS) * 1.5, ZG[1] + 9), P2(Math.cos(thS) * 8, Math.sin(thS) * 8, ZG[1] + 9)]) + '"/>' });
+  const lp = lift.planets.x * LIFT.planets, ls = lift.sun.x * LIFT.sun, lr = lift.ring.x * LIFT.ring;
+  const up = (dz) => ' transform="' + translateAlong(P, [0, 0, dz]) + '"';
+  PSI.forEach((psi, i) => {
+    const cx = A * Math.cos(psi), cy = A * Math.sin(psi);
+    const shaft = solidSvg(cylinder(cx, cy, 4.2, ZC1, ZG[1] + 2.4 - ZC1, P, 24, 0.3), { tone: "mid" });
+    const head = solidSvg(cylinder(cx, cy, 6.5, ZG[1], 2.4, P, 28, 0.4), { tone: "mid" }) + dotsSvg([P2(cx, cy, ZG[1] + 2.4)], { size: 0.8, tone: "mid" });
+    const planet = '<g data-mod="planets"' + up(lp) + '>' + gear(cx, cy, ZP, RP, thP[i], false) + '</g>';
+    const pin = '<g data-mod="carrier">';
+    const svgItem = lp < 2.4 ? pin + (lp > 0.05 ? shaft : "") + '</g>' + planet + pin + head + '</g>' : pin + shaft + head + '</g>' + planet;
+    items.push({ d: cx * V[0] + cy * V[1] + (26 + lp) * 0.53, svg: svgItem });
+  });
+  const spline = solidSvg(cylinder(0, 0, 6, ZC1, ZG[1] - ZC1 + 0.5, P, 32, 0.3), { tone: "mid" }) + lineSvg(knurl(0, 0, 6, ZC1 + 1, ZG[1], 18, P), { tone: "lo" });
+  items.push({ d: (26 + ls) * 0.53, svg: (ls > 0.05 ? '<g data-mod="carrier">' + spline + '</g>' : "") + '<g data-mod="sun"' + up(ls) + '>' + gear(0, 0, ZS, RS, thS, false) + solidSvg(cylinder(0, 0, 8, ZG[1], 9, P, 40, 0.5), { tone: "hi", crease: "lo" }) + '<path class="iso-line" data-tone="lit" data-free="start" style="stroke-width:1.2" d="' + path([P2(Math.cos(thS) * 1.5, Math.sin(thS) * 1.5, ZG[1] + 9), P2(Math.cos(thS) * 8, Math.sin(thS) * 8, ZG[1] + 9)]) + '"/></g>' });
   items.sort((a, b) => a.d - b.d);
+  ringEl.setAttribute("transform", translateAlong(P, [0, 0, lr]));
+  ringWallEl.setAttribute("transform", translateAlong(P, [0, 0, lr]));
   gearsEl.innerHTML = items.map((i) => i.svg).join("");
   // епіцикл: ближня зовнішня стінка, верхнє кільце з внутрішніми зубами, болти й мітка
   const outer = circleRing(0, 0, RING_OUT, 120);
@@ -216,9 +318,19 @@ function tick(now) {
   const want = RPM[target];
   rpm = calm ? want : rpm + (want - rpm) * (1 - Math.exp(-dt / 0.9));
   knob = calm ? ANGLES[target] : knob + (ANGLES[target] - knob) * (1 - Math.exp(-dt / 0.12));
-  if (!calm) thS += (rpm / 9000) * 0.55 * 2 * Math.PI * dt;
+  let moving = false;
+  for (const id of ["ring", "sun", "planets"]) {
+    const st = lift[id], want = apart ? 1 : 0;
+    if (st.delay > 0) { st.delay -= dt; moving = true; continue; }
+    if (calm) { st.x = want; st.v = 0; continue; }
+    for (let k = 0; k < 4; k++) { st.v += ((want - st.x) * 70 - st.v * 15) * dt / 4; st.x += st.v * dt / 4; }
+    if (Math.abs(want - st.x) < 1e-3 && Math.abs(st.v) < 1e-3) { st.x = want; st.v = 0; } else moving = true;
+  }
+  const engaged = lift.planets.x < 0.02 && lift.sun.x < 0.02 && lift.ring.x < 0.02;
+  if (!calm && engaged) thS += (rpm / 9000) * 0.55 * 2 * Math.PI * dt;
   draw();
-  frame = visible && !(calm) && (rpm > 1 || Math.abs(want - rpm) > 1 || touring) ? requestAnimationFrame(tick) : 0;
+  applyFocus();
+  frame = visible && (moving || (!calm && (rpm > 1 || Math.abs(want - rpm) > 1 || touring))) ? requestAnimationFrame(tick) : 0;
 }
 function run() { if (!frame && visible) { last = 0; frame = requestAnimationFrame(tick); } }
 function select(i, user) { target = Math.max(0, Math.min(3, i)); if (user) { touring = false; idle = 0; } say(); run(); }
@@ -227,13 +339,42 @@ stage.addEventListener("click", () => select((target + 1) % 4, true));
 stage.addEventListener("keydown", (e) => { let to = null; if (e.key === "ArrowRight" || e.key === "ArrowUp") to = target + 1; if (e.key === "ArrowLeft" || e.key === "ArrowDown") to = target - 1; if (e.key >= "1" && e.key <= "4") to = Number(e.key) - 1; if (to === null) return; e.preventDefault(); select(to, true); });
 buttons.forEach((b, i) => b.addEventListener("click", () => select(i, true)));
 still.addEventListener("change", () => { touring = !still.matches; draw(); run(); });
-window.__gear = { select: (i) => select(i, true), set: (t) => { thS = t; draw(); } };
+function applyFocus() { partsEl.querySelectorAll("[data-mod]").forEach((g) => g.toggleAttribute("data-on", g.dataset.mod === focus)); partsEl.toggleAttribute("data-focus", !!focus); }
+function setFocus(id, pin) {
+  if (pin) pinned = pinned === id ? null : id;
+  focus = id ?? pinned;
+  applyFocus();
+  modsEl.querySelectorAll("[data-mod-btn]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.modBtn === focus)));
+  if (focus) { readout.textContent = PART_TEXT[focus][0] + "\\n" + PART_TEXT[focus][1]; readoutM.textContent = readout.textContent; } else say();
+}
+function toggle(on) {
+  apart = on ?? !apart;
+  touring = false; idle = 0;
+  explodeBtn.setAttribute("aria-pressed", String(apart));
+  explodeBtn.textContent = apart ? "Зібрати редуктор (E)" : "Розібрати редуктор (E)";
+  const seq = apart ? ["ring", "sun", "planets"] : ["planets", "sun", "ring"];
+  seq.forEach((id, n) => { lift[id].delay = n * 0.12; });
+  run();
+}
+modsEl.innerHTML = ["ring", "sun", "planets", "carrier"].map((id, n) => '<button type="button" data-mod-btn="' + id + '"><b>0' + (n + 1) + "</b> " + PART_TEXT[id][0] + '<i aria-hidden="true">↗</i></button>').join("");
+modsEl.querySelectorAll("[data-mod-btn]").forEach((b) => {
+  const id = b.dataset.modBtn;
+  b.addEventListener("pointerenter", () => setFocus(id)); b.addEventListener("pointerleave", () => setFocus(null));
+  b.addEventListener("focus", () => setFocus(id)); b.addEventListener("blur", () => setFocus(null));
+  b.addEventListener("click", () => window.__viewer?.open(0, [id]));
+});
+window.addEventListener("jv-open", () => { touring = false; idle = -1e9; });
+window.__viewerOpenCurrent = () => window.__viewer?.open(0, focus ? [focus] : []);
+explodeBtn.addEventListener("click", () => toggle());
+stage.addEventListener("keydown", (e) => { if (e.key === "e" || e.key === "E" || e.key === "у" || e.key === "У") { e.preventDefault(); toggle(); } });
+window.__gear = { explode: (on) => toggle(on), select: (i) => select(i, true), set: (t) => { thS = t; draw(); } };
 say(); draw();
 `;
   return figurePage({
+    apps: [gearApp()],
     n: 4,
     svg,
-    hint: "Натисніть ручку або ← →",
+    hint: "Ручка або ← → · E — розібрати · R — 3D",
     stageLabel: "Режим турбіни: стрілки змінюють оберти",
     initial: INITIAL,
     legend,
