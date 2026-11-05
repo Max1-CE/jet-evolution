@@ -239,6 +239,8 @@ body{margin:0;background:var(--anatomy-page);color:var(--anatomy-text);font:14px
 .jv-tools button{font:inherit;font-family:var(--anatomy-mono);font-size:12px;color:var(--anatomy-text);background:var(--anatomy-card);border:0;box-shadow:0 0 0 1px var(--anatomy-lo);padding:5px 11px;cursor:pointer}
 .jv-tools button[aria-pressed="true"]{color:var(--anatomy-strong);box-shadow:0 0 0 1px var(--anatomy-hi)}
 .jv-tools button:disabled{opacity:.4;cursor:default}
+.jv-rpm{align-self:center;font-family:var(--anatomy-mono);font-size:11.5px;color:var(--anatomy-strong);font-variant-numeric:tabular-nums}
+.jv-tools [data-act="run"][aria-pressed="true"]{color:#fff;background:#18181a;box-shadow:none}
 .jv-tools .jv-hint{margin-left:auto;align-self:center;font-size:11.5px;color:var(--anatomy-muted)}
 .jv-tip{position:absolute;z-index:2;pointer-events:none;font-size:12px;color:#fff;background:#18181ae6;padding:3px 8px;white-space:nowrap}
 .jv button:focus-visible{outline:2px solid #3e63dd;outline-offset:1px}
@@ -273,11 +275,13 @@ body{margin:0;background:var(--anatomy-page);color:var(--anatomy-text);font:14px
 <div class="jv-view"><div class="jv-tip" hidden></div></div>
 <div class="jv-tools" role="toolbar" aria-label="Керування 3D">
 <button type="button" data-act="up">↑ Вище <span class="jv-k">(Backspace)</span></button>
+<button type="button" data-act="run" aria-pressed="false" hidden>▶ Запуск <span class="jv-k">(S)</span></button>
 <button type="button" data-act="explode" aria-pressed="false">Розібрати <span class="jv-k">(E)</span></button>
 <button type="button" data-act="explode-all">Розібрати все <span class="jv-k">(Shift+E)</span></button>
 <button type="button" data-act="cut" aria-pressed="true">Розріз: так <span class="jv-k">(C)</span></button>
 <button type="button" data-act="spin" aria-pressed="false">Обертання <span class="jv-k">(A)</span></button>
 <button type="button" data-act="reset">Вид <span class="jv-k">(R)</span></button>
+<span class="jv-rpm" aria-live="off" hidden></span>
 <span class="jv-hint">тягніть — обертати · колесо — масштаб · права кнопка — зсув · клік по деталі — відкрити</span>
 </div>
 <aside class="jv-panel" aria-live="polite">
@@ -619,6 +623,7 @@ function load(i) {
   if (app.frame === "z") frameGroup.rotation.x = -Math.PI / 2;
   root = makeNode(app.root, null);
   frameGroup.add(root.group);
+  setupSpin();
   scene.add(frameGroup);
   frameGroup.updateMatrixWorld(true);
   cutPlanes = (app.cut ?? []).map(([a, b, c, d]) => new THREE.Plane(new THREE.Vector3(a, b, c), d));
@@ -685,6 +690,62 @@ function offsets(n, useTarget) {
     for (const k of n.kids) if (k.single) { k.group.matrix.makeTranslation(0, (n.spec.spread ?? 0) * t, 0); k.group.matrixWorldNeedsUpdate = true; }
   }
 }
+// --- запуск: ротори крутяться кожен зі своїм валом ----------------------------------------------------
+const VIS = 0.0032; // уповільнення: об/хв → рад/с на екрані
+let running = false, spools = [], spinners = [], rpmShown = 0;
+function setupSpin() {
+  running = false;
+  spools = (app.spools ?? []).map((sp) => ({ ...sp, w: 0, th: 0 }));
+  spinners = [];
+  walk(root, (n) => { if (n.spec.spin) { n.own.matrixAutoUpdate = false; spinners.push(n); } });
+  const b = $('[data-act="run"]');
+  b.hidden = !spools.length;
+  runLabel();
+  $(".jv-rpm").hidden = !spools.length;
+  $(".jv-rpm").textContent = "";
+}
+function runLabel() {
+  const b = $('[data-act="run"]');
+  b.setAttribute("aria-pressed", String(running));
+  b.innerHTML = (running ? "■ Зупинити" : "▶ Запуск") + ' <span class="jv-k">(S)</span>';
+}
+function setRun(on) { running = on ?? !running; runLabel(); run(); }
+const M4 = new THREE.Matrix4(), M4b = new THREE.Matrix4();
+/** Розкручування й поворот роторів; повертає true, поки щось обертається. */
+function spinTick(dt) {
+  if (!spools.length) return false;
+  let busy = false;
+  const by = {};
+  for (const sp of spools) {
+    const target = running ? sp.rpm : 0;
+    const tau = running ? sp.tau : sp.tau * 1.7;
+    sp.w += (target - sp.w) * (1 - Math.exp(-dt / tau));
+    if (!running && Math.abs(sp.w) < Math.abs(sp.rpm) * 0.002) sp.w = 0;
+    if (running && Math.abs(target - sp.w) < Math.abs(sp.rpm) * 0.001) sp.w = target;
+    sp.th = (sp.th + (sp.w / 60) * TAU * (still.matches ? 0 : VIS) * dt) % (TAU * 1e4);
+    if (sp.w) busy = true;
+    by[sp.id] = sp;
+  }
+  for (const n of spinners) {
+    const sp = by[n.spec.spin.s];
+    if (!sp) continue;
+    const a = sp.th * (n.spec.spin.k ?? 1);
+    const m = n.own.matrix;
+    if (n.spec.spin.axis === "z") {
+      const [cx, cy] = n.spec.spin.c ?? [0, 0];
+      m.makeTranslation(cx, cy, 0).multiply(M4.makeRotationZ(a)).multiply(M4b.makeTranslation(-cx, -cy, 0));
+    } else m.makeRotationX(a);
+    n.own.matrixWorldNeedsUpdate = true;
+  }
+  rpmShown += dt;
+  if (rpmShown > 0.12 || !busy) {
+    rpmShown = 0;
+    const fmt = (x) => Math.round(Math.abs(x) / 10) * 10;
+    $(".jv-rpm").textContent = spools.filter((sp) => !sp.hide).map((sp) => `${sp.name} ${fmt(sp.w).toLocaleString("uk")}${sp.rpm < 0 ? " ↺" : ""}`).join(" · ") + " об/хв" + (still.matches && running ? " (рух вимкнено в системі)" : "");
+  }
+  return busy;
+}
+
 function boxOf(n, atTarget) {
   const saved = [];
   if (atTarget) walk(n, (x) => { saved.push([x, x.t]); x.t = x.apart ? 1 : 0; offsets(x, false); });
@@ -952,6 +1013,7 @@ function tick(now) {
     if (camAnim.t >= 1) camAnim = null;
     busy = true;
   }
+  if (spinTick(dt)) busy = true;
   if (busy) updatePlanes();
   const moved = controls.update(dt);
   renderer.render(scene, camera);
@@ -1009,6 +1071,7 @@ el.addEventListener("click", (e) => {
   if (act === "explode") explode(focus);
   if (act === "explode-all") { let any = false; walk(focus, (x) => { if (canSplit(x) && x.apart) any = true; }); explode(focus, !any, true); }
   if (act === "cut") setCut(!cut);
+  if (act === "run") setRun();
   if (act === "spin") { spin = !spin; controls.autoRotate = spin; $('[data-act="spin"]').setAttribute("aria-pressed", String(spin)); run(); }
   if (act === "reset") frame(focus, { reset: true });
 });
@@ -1019,6 +1082,7 @@ el.addEventListener("keydown", (e) => {
   else if (k === "backspace") { e.preventDefault(); if (focus.parent) enter(focus.parent); }
   else if (k === "e" || k === "у") { e.preventDefault(); e.shiftKey ? $('[data-act="explode-all"]').click() : explode(focus); }
   else if (k === "c" || k === "с") { e.preventDefault(); setCut(!cut); }
+  else if ((k === "s" || k === "і" || k === "ы") && spools.length) { e.preventDefault(); setRun(); }
   else if (k === "a" || k === "ф") { e.preventDefault(); $('[data-act="spin"]').click(); }
   else if (k === "r" || k === "к") { e.preventDefault(); frame(focus, { reset: true }); }
   else if (e.key === "Tab") {
@@ -1036,6 +1100,8 @@ window.__viewer = {
   get state() { return open ? { app: appIndex, path: pathOf(focus).map((n) => n.spec.name), cut, apart: !!focus.apart } : null; },
   explode: (on, deep) => explode(focus, on, deep),
   cut: (on) => setCut(on),
+  run: (on) => setRun(on),
+  get rpm() { return spools.map((sp) => [sp.id, Math.round(sp.w)]); },
   enter: (...ids) => { let n = focus; for (const id of ids) { const k = typeof id === "number" ? n.kids[id] : n.kids.find((x) => x.spec.id === id); if (!k) break; n = k; } enter(n); },
   blade: (i) => focus.rowMesh && enterBlade(focus, i ?? firstVisibleBlade(focus)),
   up: () => focus.parent && enter(focus.parent),

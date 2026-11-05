@@ -218,6 +218,11 @@ function engineTree(i) {
     sun: "Сонячна шестерня", carrier: "Водило",
   };
   const KEY = { "lpc-drum": "drum", "hpc-drum": "drum" };
+  // які деталі обертаються і з яким валом: lp — вал НТ, hp — вал ВТ, fan — вентилятор (у GTF через редуктор)
+  const fanSpool = geo.id === "gtf" ? "fan" : "lp";
+  const PART_SPOOL = jumo
+    ? { drum: "hp", shaft: "hp" }
+    : { spinner: fanSpool, "fan-disc": fanSpool, "lpc-drum": "lp", "lp-shaft": "lp", "hpc-drum": "hp", "hp-shaft": "hp", sun: "lp", "ring-gear": "fan" };
   const partNode = (p) => {
     const key = KEY[p.id] ?? p.id;
     const node = { id: p.id, name: NAMES[p.id] ?? p.id, kind: p.kind, ...info(key, e), geo: [lathe(p.poly, KIND_MAT[p.kind])] };
@@ -252,6 +257,8 @@ function engineTree(i) {
         };
       });
     }
+    const sp = PART_SPOOL[p.id];
+    if (sp) node.spin = { s: sp };
     return node;
   };
   const rowKey = (row) => (row.fan ? (row.kind === "blade" ? "fan-blade" : "fan-vane") : row.bypass ? "ogv" : row.strut ? "strut" : row.hot ? (row.kind === "vane" ? "ngv" : row.spool === "lp" ? "lpt-blade" : "turb-blade") : row.kind === "blade" ? "comp-blade" : "comp-vane");
@@ -261,6 +268,7 @@ function engineTree(i) {
     spread: r4(Math.max(0.08, 0.45 * row.r1)),
     facts: [["Лопаток у ряду", String(row.count)], ["Висота лопатки", `${Math.round((row.r1 - row.r0) * 1000)} мм`]],
     unit: row.kind === "blade" ? "лопатка" : "лопатка апарата",
+    ...(row.kind === "blade" ? { spin: { s: jumo ? "hp" : row.fan ? fanSpool : row.spool } } : {}),
   });
 
   const mods = {};
@@ -321,7 +329,7 @@ function engineTree(i) {
         st.func = `Ступінь турбіни: сопловий апарат розганяє й закручує газ, робоче колесо забирає в нього енергію. ${lp ? "Ступінь НТ крутить вентилятор і КНТ." : jumo ? "Крутить компресор." : "Ступінь ВТ крутить компресор ВТ."}`;
         if (v) st.kids.push(rowNode(v, "Сопловий апарат"));
         st.kids.push(rowNode(b, "Робочі лопатки"));
-        if (disc) st.kids.push({ ...partNode(disc), id: disc.id, name: "Диск", role: "inner" });
+        if (disc) st.kids.push({ ...partNode(disc), id: disc.id, name: "Диск", role: "inner", spin: { s: jumo ? "hp" : b.spool } });
         kids.push(spreadKids(st, { gap: 0.05 }));
       });
     } else {
@@ -333,7 +341,7 @@ function engineTree(i) {
       });
     }
     const mod = { id, name: MOD_NAME[id], ...info(MOD_KEY[id] ?? id, e), kids, ex: moduleEx(id) };
-    if (kids.length === 1 && !kids[0].kids && !kids[0].row) { mod.geo = kids[0].geo; mod.kind = kids[0].kind; delete mod.kids; }
+    if (kids.length === 1 && !kids[0].kids && !kids[0].row) { mod.geo = kids[0].geo; mod.kind = kids[0].kind; if (kids[0].spin) mod.spin = kids[0].spin; delete mod.kids; }
     const stages = kids.filter((k) => k.id.startsWith("st") || k.id.startsWith("ts")).length;
     if (stages) mod.facts = [["Ступенів", String(stages)]];
     if (id === "fan" && geo.R) mod.facts = [["Діаметр вентилятора", `${comma(geo.R * 2, 2)} м`]];
@@ -367,6 +375,14 @@ export const engineApp = (i) => ({
   unit: 1,
   cut: [[0, -1, 0, 0], [0, 0, -1, 0]],
   view: [-0.62, 0.38, 1],
+  spools: SPOOLS[i],
   root: engineTree(i),
 });
+// злітні оберти (приблизно), об/хв; tau — стала розкручування на моделі, с
+const SPOOLS = [
+  [{ id: "hp", name: "n", rpm: 8700, tau: 1.6 }],
+  [{ id: "lp", name: "N1", rpm: 8600, tau: 1.9 }, { id: "hp", name: "N2", rpm: 12250, tau: 1.3 }],
+  [{ id: "lp", name: "N1", rpm: 3650, tau: 2.1 }, { id: "hp", name: "N2", rpm: 8000, tau: 1.3 }],
+  [{ id: "fan", name: "вентилятор", rpm: -3280, tau: 2.1 }, { id: "lp", name: "N1", rpm: 10050, tau: 2.1 }, { id: "hp", name: "N2", rpm: 22300, tau: 1.3 }],
+];
 export { T as PART_TEXT, info, spreadKids };

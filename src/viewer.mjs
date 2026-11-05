@@ -41,6 +41,8 @@ export const VIEWER_CSS = `
 .jv-tools button{font:inherit;font-family:var(--anatomy-mono);font-size:12px;color:var(--anatomy-text);background:var(--anatomy-card);border:0;box-shadow:0 0 0 1px var(--anatomy-lo);padding:5px 11px;cursor:pointer}
 .jv-tools button[aria-pressed="true"]{color:var(--anatomy-strong);box-shadow:0 0 0 1px var(--anatomy-hi)}
 .jv-tools button:disabled{opacity:.4;cursor:default}
+.jv-rpm{align-self:center;font-family:var(--anatomy-mono);font-size:11.5px;color:var(--anatomy-strong);font-variant-numeric:tabular-nums}
+.jv-tools [data-act="run"][aria-pressed="true"]{color:#fff;background:#18181a;box-shadow:none}
 .jv-tools .jv-hint{margin-left:auto;align-self:center;font-size:11.5px;color:var(--anatomy-muted)}
 .jv-tip{position:absolute;z-index:2;pointer-events:none;font-size:12px;color:#fff;background:#18181ae6;padding:3px 8px;white-space:nowrap}
 .jv button:focus-visible{outline:2px solid #3e63dd;outline-offset:1px}
@@ -62,11 +64,13 @@ const MARKUP = `<div class="jv" hidden role="dialog" aria-modal="true" aria-labe
 <div class="jv-view"><div class="jv-tip" hidden></div></div>
 <div class="jv-tools" role="toolbar" aria-label="Керування 3D">
 <button type="button" data-act="up">↑ Вище <span class="jv-k">(Backspace)</span></button>
+<button type="button" data-act="run" aria-pressed="false" hidden>▶ Запуск <span class="jv-k">(S)</span></button>
 <button type="button" data-act="explode" aria-pressed="false">Розібрати <span class="jv-k">(E)</span></button>
 <button type="button" data-act="explode-all">Розібрати все <span class="jv-k">(Shift+E)</span></button>
 <button type="button" data-act="cut" aria-pressed="true">Розріз: так <span class="jv-k">(C)</span></button>
 <button type="button" data-act="spin" aria-pressed="false">Обертання <span class="jv-k">(A)</span></button>
 <button type="button" data-act="reset">Вид <span class="jv-k">(R)</span></button>
+<span class="jv-rpm" aria-live="off" hidden></span>
 <span class="jv-hint">тягніть — обертати · колесо — масштаб · права кнопка — зсув · клік по деталі — відкрити</span>
 </div>
 <aside class="jv-panel" aria-live="polite">
