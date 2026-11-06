@@ -413,13 +413,15 @@ function setupSpin() {
   $(".jv-rpm").hidden = !spools.length;
   $(".jv-rpm").textContent = "";
   buildFlow();
+  if (audio) audioSetup();
+  soundLabel();
 }
 function runLabel() {
   const b = $('[data-act="run"]');
   b.setAttribute("aria-pressed", String(running));
   b.innerHTML = (running ? "■ Зупинити" : "▶ " + (app?.runLabel ?? "Запуск")) + ' <span class="jv-k">(S)</span>';
 }
-function setRun(on) { running = on ?? !running; runLabel(); run(); }
+function setRun(on) { running = on ?? !running; runLabel(); if (running) audioWake(); run(); }
 const M4 = new THREE.Matrix4(), M4b = new THREE.Matrix4();
 /** Розкручування й поворот роторів; повертає true, поки щось обертається. */
 function spinTick(dt) {
@@ -436,6 +438,7 @@ function spinTick(dt) {
     if (sp.w) busy = true;
     by[sp.id] = sp;
   }
+  audioTick();
   const main = spools[spools.length - 1];
   if (flowTick(dt, main.rpm ? Math.abs(main.w / main.rpm) : 0)) busy = true;
   for (const n of spinners) {
@@ -458,6 +461,111 @@ function spinTick(dt) {
     $(".jv-rpm").textContent = [shafts.length ? shafts.map((sp) => `${sp.name} ${fmt(sp.w).toLocaleString("uk")}${sp.rpm < 0 ? " ↺" : ""}`).join(" · ") + " об/хв" : "", ...texts].filter(Boolean).join(" · ") + (still.matches && running ? " (рух вимкнено в системі)" : "");
   }
   return busy;
+}
+
+// --- звук: синтез у Web Audio, висота й гучність ідуть за обертами валів -----------------------------
+let audio = null, quietFor = 0;
+let soundOn = (() => { try { return localStorage.getItem("jv-sound") !== "0"; } catch { return true; } })();
+function audioCtx() {
+  if (audio) return audio;
+  const C = window.AudioContext || window.webkitAudioContext;
+  if (!C) return null;
+  const ctx = new C();
+  const master = ctx.createGain();
+  master.gain.value = 0;
+  const comp = ctx.createDynamicsCompressor();
+  master.connect(comp).connect(ctx.destination);
+  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  let b = 0;
+  for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; b = 0.97 * b + 0.03 * w; d[i] = w * 0.5 + b * 4; }
+  audio = { ctx, master, buf, voices: [] };
+  return audio;
+}
+function noiseVoice(a, type, freq, q) {
+  const src = a.ctx.createBufferSource();
+  src.buffer = a.buf; src.loop = true;
+  src.playbackRate.value = 0.9 + Math.random() * 0.2;
+  const f = a.ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+  const g = a.ctx.createGain(); g.gain.value = 0;
+  src.connect(f).connect(g).connect(a.master);
+  src.start();
+  return { src, f, g };
+}
+function toneVoice(a, type, mult, filt, freq) {
+  const oscs = mult.map(() => { const o = a.ctx.createOscillator(); o.type = type; return o; });
+  const f = a.ctx.createBiquadFilter(); f.type = filt; f.frequency.value = freq; f.Q.value = filt === "bandpass" ? 3 : 0.7;
+  const g = a.ctx.createGain(); g.gain.value = 0;
+  oscs.forEach((o) => { o.connect(f); o.start(); });
+  f.connect(g).connect(a.master);
+  return { oscs, mult, f, g };
+}
+/** Голоси для поточного апарата: свист/гудіння для кожного вала, гул і шипіння шуму. */
+function audioSetup() {
+  if (!audio) return;
+  for (const v of audio.voices) { (v.oscs ?? [v.src]).forEach((o) => { try { o.stop(); } catch {} }); }
+  audio.voices = [];
+  const S = app.sound;
+  if (!S) return;
+  const a = audio;
+  const ROLE = {
+    hp: () => toneVoice(a, "triangle", [1, 2.01, 3.02], "highpass", 300),
+    lp: () => toneVoice(a, "sawtooth", [1, 1.5], "lowpass", 1400),
+    fan: () => toneVoice(a, "sawtooth", [1, 2, 3], "lowpass", 420),
+    sun: () => toneVoice(a, "square", [1, 2], "bandpass", 900),
+  };
+  for (const sp of spools) if (ROLE[sp.id]) audio.voices.push({ ...ROLE[sp.id](), role: sp.id, sp });
+  if (S.roar) audio.voices.push({ ...noiseVoice(a, "lowpass", 300, 0.6), role: "roar" });
+  if (S.hiss) audio.voices.push({ ...noiseVoice(a, "bandpass", 2600, 0.8), role: "hiss" });
+}
+const FREQ = { hp: [420, 2600, 0.035], lp: [110, 620, 0.05], fan: [32, 105, 0.11], sun: [180, 1500, 0.05] };
+function audioTick() {
+  if (!audio) return;
+  const S = app.sound ?? {};
+  const t = audio.ctx.currentTime;
+  const frac = (sp) => (sp.rpm ? Math.min(1.05, Math.abs(sp.w / sp.rpm)) : 0);
+  const power = Math.max(0, ...spools.map(frac));
+  for (const v of audio.voices) {
+    if (v.sp) {
+      const x = frac(v.sp), [f0, f1, gmax] = FREQ[v.role];
+      const f = f0 + (f1 - f0) * x;
+      v.oscs.forEach((o, k) => o.frequency.setTargetAtTime(f * v.mult[k] * (1 + k * 0.003), t, 0.05));
+      if (v.role === "sun") v.f.frequency.setTargetAtTime(f * 1.5, t, 0.05);
+      v.g.gain.setTargetAtTime(gmax * Math.pow(x, 1.3), t, 0.08);
+    } else if (v.role === "roar") {
+      v.f.frequency.setTargetAtTime(220 + 3200 * power * power, t, 0.1);
+      v.g.gain.setTargetAtTime(0.32 * S.roar * power * power, t, 0.1);
+    } else if (v.role === "hiss") {
+      v.g.gain.setTargetAtTime(0.1 * S.hiss * power, t, 0.1);
+    }
+  }
+  const want = soundOn && open ? 0.55 : 0;
+  audio.master.gain.setTargetAtTime(want, t, 0.12);
+  // тиша — за півтори секунди призупиняємо контекст, щоб не їв процесор
+  clearTimeout(quietFor);
+  if (!(power > 0.002 && want)) quietFor = setTimeout(() => { if (audio.ctx.state === "running" && !spools.some((sp) => sp.w)) audio.ctx.suspend(); }, 1500);
+}
+function audioWake() {
+  if (!soundOn || !app?.sound) return;
+  const fresh = !audio;
+  const a = audioCtx();
+  if (!a) return;
+  if (fresh || !a.voices.length) audioSetup();
+  quietFor = 0;
+  if (a.ctx.state !== "running") a.ctx.resume();
+}
+function soundLabel() {
+  const b = $('[data-act="sound"]');
+  b.hidden = !app?.sound;
+  b.setAttribute("aria-pressed", String(soundOn));
+  b.innerHTML = (soundOn ? "Звук: так" : "Звук: ні") + ' <span class="jv-k">(M)</span>';
+}
+function setSound(on) {
+  soundOn = on ?? !soundOn;
+  try { localStorage.setItem("jv-sound", soundOn ? "1" : "0"); } catch {}
+  soundLabel();
+  if (soundOn && running) audioWake();
+  run();
 }
 
 // --- потік повітря під час запуску (лише для цілого зібраного апарата) -----------------------------
@@ -883,6 +991,7 @@ function show(i = 0, path = []) {
 }
 function hide() {
   open = false;
+  if (audio) { audio.master.gain.setTargetAtTime(0, audio.ctx.currentTime, 0.08); setTimeout(() => { if (!open && audio.ctx.state === "running") audio.ctx.suspend(); }, 400); }
   el.hidden = true;
   document.documentElement.classList.remove("jv-lock");
   tip.hidden = true;
@@ -899,6 +1008,7 @@ el.addEventListener("click", (e) => {
   if (act === "explode-all") { let any = false; walk(focus, (x) => { if (canSplit(x) && x.apart) any = true; }); explode(focus, !any, true); }
   if (act === "cut") setCut(!cut);
   if (act === "run") setRun();
+  if (act === "sound") setSound();
   if (act === "spin") { spin = !spin; controls.autoRotate = spin; $('[data-act="spin"]').setAttribute("aria-pressed", String(spin)); run(); }
   if (act === "reset") frame(focus, { reset: true });
 });
@@ -910,6 +1020,7 @@ el.addEventListener("keydown", (e) => {
   else if (k === "e" || k === "у") { e.preventDefault(); e.shiftKey ? $('[data-act="explode-all"]').click() : explode(focus); }
   else if (k === "c" || k === "с") { e.preventDefault(); setCut(!cut); }
   else if ((k === "s" || k === "і" || k === "ы") && spools.length) { e.preventDefault(); setRun(); }
+  else if ((k === "m" || k === "ь") && app.sound) { e.preventDefault(); setSound(); }
   else if (k === "a" || k === "ф") { e.preventDefault(); $('[data-act="spin"]').click(); }
   else if (k === "r" || k === "к") { e.preventDefault(); frame(focus, { reset: true }); }
   else if (e.key === "Tab") {
@@ -928,6 +1039,8 @@ window.__viewer = {
   explode: (on, deep) => explode(focus, on, deep),
   cut: (on) => setCut(on),
   run: (on) => setRun(on),
+  sound: (on) => setSound(on),
+  get audio() { return audio ? { state: audio.ctx.state, voices: audio.voices.map((v) => v.role + ":" + v.g.gain.value.toFixed(3)), master: audio.master.gain.value.toFixed(2) } : null; },
   get rpm() { return spools.map((sp) => [sp.id, Math.round(sp.w)]); },
   enter: (...ids) => { let n = focus; for (const id of ids) { const k = typeof id === "number" ? n.kids[id] : n.kids.find((x) => x.spec.id === id); if (!k) break; n = k; } enter(n); },
   blade: (i) => focus.rowMesh && enterBlade(focus, i ?? firstVisibleBlade(focus)),

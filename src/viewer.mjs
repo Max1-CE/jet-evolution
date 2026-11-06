@@ -68,6 +68,7 @@ const MARKUP = `<div class="jv" hidden role="dialog" aria-modal="true" aria-labe
 <div class="jv-tools" role="toolbar" aria-label="Керування 3D">
 <button type="button" data-act="up">↑ Вище <span class="jv-k">(Backspace)</span></button>
 <button type="button" data-act="run" aria-pressed="false" hidden>▶ Запуск <span class="jv-k">(S)</span></button>
+<button type="button" data-act="sound" aria-pressed="true" hidden>Звук: так <span class="jv-k">(M)</span></button>
 <button type="button" data-act="explode" aria-pressed="false">Розібрати <span class="jv-k">(E)</span></button>
 <button type="button" data-act="explode-all">Розібрати все <span class="jv-k">(Shift+E)</span></button>
 <button type="button" data-act="cut" aria-pressed="true">Розріз: так <span class="jv-k">(C)</span></button>

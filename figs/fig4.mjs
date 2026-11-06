@@ -186,6 +186,7 @@ function gearApp() {
     cut: [[-1, 0, 0, 0], [0, 1, 0, 0]],
     spools: [{ id: "sun", name: "вал ТНТ", rpm: 9000, tau: 1.6 }, { id: "ring", name: "вентилятор", rpm: -9000 * ZS / ZR, tau: 1.6 }, { id: "oil", rpm: 1, tau: 0.9, text: "масло під тиском — до підшипників і зачеплень" }],
     flow: oilFlow(),
+    sound: { roar: 0.12, hiss: 0.05 },
     view: [1, 0.85, 1.25],
     root: {
       id: "gearbox", name: "Редуктор вентилятора", kicker: "PW1100G · зірчаста планетарна передача",

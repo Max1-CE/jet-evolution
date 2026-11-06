@@ -379,6 +379,7 @@ export const engineApp = (i) => ({
   cut: [[0, -1, 0, 0], [0, 0, -1, 0]],
   view: [-0.62, 0.38, 1],
   spools: SPOOLS[i],
+  sound: { roar: i === 0 ? 1.25 : 0.9, hiss: i === 0 ? 0.4 : 0.25 },
   flow: flowOf(GEOMETRY[i]),
   root: engineTree(i),
 });
