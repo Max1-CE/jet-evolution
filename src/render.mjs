@@ -274,7 +274,7 @@ function pylon(geo, engine) {
     }
     return best;
   };
-  const mounts = engine.id === "jumo" ? [0.5, 1.95] : engine.id === "jt8d" ? [0.6, 2.4] : [0.55, geo.bypass && geo.bypass.s1 < 2.3 ? geo.bypass.s1 - 0.3 : 1.6];
+  const mounts = engine.id === "jumo" ? [0.5, 1.95] : engine.id === "jt8d" ? [0.6, 2.4] : engine.id === "f135" ? [0.6, 2.25] : [0.55, geo.bypass && geo.bypass.s1 < 2.3 ? geo.bypass.s1 - 0.3 : 1.6];
   const out = [];
   for (const s of mounts) {
     const r = outerAt(s);
@@ -294,7 +294,7 @@ function pylon(geo, engine) {
 // ---------------------------------------------------------------------------
 // Модулі для розбирання: кожна деталь і ряд лопаток належать одному модулю.
 // Усі модулі рухаються лише вздовж осі, тож радіальне вкладення (а з ним і порядок малювання) зберігається.
-export const MODULE_ORDER = ["nac", "cowl", "fan", "gear", "lpc", "hpc", "comb", "turb", "noz", "shaft"];
+export const MODULE_ORDER = ["nac", "cowl", "fan", "gear", "lpc", "hpc", "comb", "turb", "ab", "noz", "shaft"];
 const PART_MODULE = {
   nacelle: "nac", skin: "nac", splitter: "cowl", "core-case": "cowl",
   spinner: "fan", "fan-disc": "fan", nose: "fan",
@@ -303,8 +303,11 @@ const PART_MODULE = {
   "lpc-drum": "lpc", "int-case": "lpc", drum: "hpc", "hpc-drum": "hpc",
   "comb-inner": "comb", liner: "comb", can: "comb", "comb-cone": "comb",
   "turbine-case": "turb", tail: "noz", "tail-hub": "noz", zwiebel: "noz", "zwiebel-rod": "noz",
+  "ab-case": "ab", "ab-liner": "ab", spray1: "ab", spray2: "ab", holder1: "ab", holder2: "ab",
+  "noz-conv": "noz", "noz-div": "noz", "noz-ext": "noz", "noz-act": "noz",
 };
 function moduleOfPart(geo, part) {
+  if (geo.ab && part.id === "tail") return "ab";
   if (PART_MODULE[part.id]) return PART_MODULE[part.id];
   if (part.id.startsWith("tdisc")) return "turb";
   if (part.id.startsWith("flange")) return geo.bypass ? "cowl" : "nac";
@@ -320,13 +323,14 @@ function moduleOfRow(geo, row) {
 /** Зсув модуля вздовж осі (м, + — проти потоку) у розібраному стані. */
 export function explodeOf(geo) {
   const fanEngine = !!geo.bypass;
-  const seq = fanEngine ? ["gear", "lpc", "hpc", "comb", "turb", "noz"] : ["hpc", "comb", "turb", "noz"];
+  const seq = fanEngine ? ["gear", "lpc", "hpc", "comb", "turb", "ab", "noz"] : ["hpc", "comb", "turb", "noz"];
   const out = { nac: fanEngine ? 1.0 : 0.75, cowl: 0.5, fan: 0, shaft: 0 };
   let k = 0;
   for (const id of seq) {
     if (id === "gear" && !geo.parts.some((p) => p.kind === "gear")) continue;
+    if ((id === "lpc" && !geo.lpc) || (id === "ab" && !geo.ab)) continue;
     k += 1;
-    out[id] = -0.36 * k;
+    out[id] = -(geo.ab ? 0.27 : 0.36) * k;
   }
   return out;
 }
@@ -361,7 +365,7 @@ function engineSvg(geo, engine, index, initial) {
   return `<g class="je-engine" data-engine="${index}" data-mods="${present.join(" ")}"${index === initial ? "" : ' data-off=""'}>${parts.join("")}</g>`;
 }
 
-/** Усі чотири двигуни; видимий — `initial`. */
+/** Усі двигуни серії; видимий — `initial`. */
 export const enginesSvg = (initial) => `<g class="je-engines">${READOUTS.map((engine, i) => engineSvg(GEOMETRY[i], engine, i, initial)).join("")}</g>`;
 export { scr, at, cut, pathOf, PHI0, PHI1 };
 export const EXPLODE = GEOMETRY.map(explodeOf);

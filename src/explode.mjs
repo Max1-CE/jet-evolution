@@ -18,13 +18,21 @@ export const MOD_TEXT = {
   comb: ["Камера згоряння", "форсунки, жарова труба; тепло додається майже без зміни тиску", "Камери згоряння", "шість трубчастих камер навколо вала"],
   turb: ["Турбіни", "ВТ крутить компресор ВТ, НТ — вентилятор і КНТ", "Турбіна", "один ступінь з порожнистими лопатками, які охолоджує повітря"],
   noz: ["Сопло й хвостовий конус", "розганяють газ ядра до швидкості струменя", "Сопло з рухомим конусом", "«цибулина» зсувається й змінює площу виходу"],
+  ab: ["Форсажна камера", "за турбіною паливо спалюють ще раз у всьому потоці; тяга зростає приблизно в півтора раза"],
   shaft: ["Вали", "лишаються на місці: модулі знімають з них"],
+};
+// військовий двигун з форсажем: інші назви корпусу, вентилятора й сопла
+const MOD_TEXT_AB = {
+  nac: ["Корпус і канал зовнішнього контуру", "гондоли немає: двигун стоїть у фюзеляжі; холодне повітря йде вздовж ядра до змішувача"],
+  cowl: ["Розділювач, змішувач і корпус ядра", "за турбіною потоки ядра й зовнішнього контуру змішуються"],
+  fan: ["Кок і вентилятор", "три ступені, стискає повітря приблизно в 5 разів"],
+  noz: ["Регульоване сопло", "збіжно-розбіжне: стулки змінюють горло й вихід, газ розганяється понад швидкість звуку"],
 };
 
 export function explodeScript() {
   return `
 const EXPLODE = ${JSON.stringify(EXPLODE)};
-const MOD_TEXT = ${JSON.stringify(MOD_TEXT)};
+const MOD_TEXT = ${JSON.stringify(MOD_TEXT)}, MOD_TEXT_AB = ${JSON.stringify(MOD_TEXT_AB)};
 const MODS = ${JSON.stringify(MODULE_ORDER)};
 const MPU = ${STAND.M};
 const explodeBtn = document.querySelector(".je-explode");
@@ -32,7 +40,7 @@ const modsEl = document.querySelector(".je-mods");
 const enginesEl = svg.querySelector(".je-engines");
 let apart = false, focus = null, pinned = null, explodeShare = 0;
 const ex = engines.map(() => ({}));
-const textOf = (i, id) => { const t = MOD_TEXT[id]; return DATA[i].bpr === 0 && t.length > 2 ? [t[2], t[3]] : [t[0], t[1]]; };
+const textOf = (i, id) => { if (DATA[i].ab && MOD_TEXT_AB[id]) return MOD_TEXT_AB[id]; const t = MOD_TEXT[id]; return DATA[i].bpr === 0 && t.length > 2 ? [t[2], t[3]] : [t[0], t[1]]; };
 function present(i) { return engines[i].dataset.mods.split(" "); }
 function order(i) { return present(i).filter((id) => Math.abs(EXPLODE[i][id] ?? 0) > 0).sort((a, b) => Math.abs(EXPLODE[i][b]) - Math.abs(EXPLODE[i][a])); }
 function listMods(i) {
@@ -66,7 +74,7 @@ function setFocus(id, pin) {
 }
 function reSay() {
   const d = DATA[current];
-  const line = "m " + comma(d.bpr, d.bpr ? 1 : 0) + " · π " + comma(d.opr, d.opr < 10 ? 2 : 0) + " · Tг " + d.t4 + " K · Cуд " + comma(d.tsfc, 2) + " кг/(кгс·год) · ηt " + comma(d.etaT, 2) + " · ηp " + comma(d.etaP, 2);
+  const line = "m " + comma(d.bpr, d.bpr && d.bpr < 1 ? 2 : d.bpr ? 1 : 0) + " · π " + comma(d.opr, d.opr < 10 ? 2 : 0) + " · Tг " + d.t4 + " K · Cуд " + comma(d.tsfc, 2) + " кг/(кгс·год) · ηt " + comma(d.etaT, 2) + " · ηp " + comma(d.etaP, 2);
   readout.textContent = (apart ? "розібрано · " : "") + d.year + " · " + d.name + " · " + d.era + "\\n" + line;
   readoutM.textContent = readout.textContent;
 }

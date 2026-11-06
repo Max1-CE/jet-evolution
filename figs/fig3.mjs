@@ -15,7 +15,7 @@ const { P, M, Y0, ZC } = STAND;
 const BOARD = { x: -84, y: -150, w: 8, d: 46, r: 1.2 }; // дошка стоїть за струменем
 const Z0 = 14;
 const HMAX = 120;
-const V_MAX = 700; // м/с на повну шкалу
+const V_MAX = 900; // м/с на повну шкалу
 const COLS = [-118, -127, -136, -145]; // y стовпчиків: v0, vвент, vядра, vj
 const KINDS = ["v0", "fan", "core", "vj"];
 
@@ -69,9 +69,9 @@ function rake() {
 }
 
 export function build() {
-  const INITIAL = 3;
+  const INITIAL = 4;
   const DATA = engineData();
-  const RAKE_Y = GEOMETRY.map((g) => Y0 - (Math.max(g.core[1], g.bypass ? g.bypass.s1 : 0) + 0.5) * M);
+  const RAKE_Y = GEOMETRY.map((g) => Y0 - (g.exitS ? g.exitS + 0.3 : Math.max(g.core[1], g.bypass ? g.bypass.s1 : 0) + 0.5) * M);
   const svg = k.figureSvg({
     width: STAND.W,
     height: STAND.H,
@@ -120,7 +120,8 @@ HOOKS.tick.push((dt, calm, cur) => {
 drawBoard();
 `;
   return figurePage({
-    apps: [0, 1, 2, 3].map(engineApp),
+    apps: DATA.map((_, i) => engineApp(i)),
+    valuemax: DATA.length - 1,
     n: 3,
     svg,
     hint: "Ручка або ← → · E — розібрати · R — 3D",

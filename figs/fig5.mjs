@@ -17,7 +17,7 @@ const Z_CUT = 96;
 const BOARD = { x: -60, y: -112, d: 40 };
 const Z0 = 12;
 const HMAX = 120;
-const T_MAX = 2000;
+const T_MAX = 2500;
 const NI_MELT = 1728;
 
 // профіль: середня лінія з вигином, товщина як у турбінної лопатки
@@ -42,6 +42,7 @@ const VARIANTS = [
   { label: "1944 · порожниста лопатка з листа", cav: [[0.03, 0.92]], wall: 2.2 },
   { label: "1965 · лита, внутрішні канали", holes: [0.12, 0.24, 0.36, 0.48, 0.6, 0.72, 0.83] },
   { label: "1970 · лита, вставка струминного обдуву", cav: [[0.04, 0.3], [0.34, 0.62], [0.66, 0.9]], wall: 3, insert: true },
+  { label: "~2009 · військова: монокристал, густе плівкове охолодження, ТЗП", cav: [[0.04, 0.17], [0.21, 0.33], [0.37, 0.49], [0.53, 0.65], [0.69, 0.8], [0.84, 0.92]], wall: 2.4, film: true, tbc: true, filmT: [0.02, 0.06, 0.12, 0.2, 0.3, 0.42, 0.56], filmB: [0.02, 0.08, 0.18, 0.32, 0.5] },
   { label: "сьогодні · монокристал, плівкове охолодження, ТЗП", cav: [[0.04, 0.2], [0.24, 0.38], [0.42, 0.56], [0.6, 0.74], [0.78, 0.9]], wall: 2.6, film: true, tbc: true },
 ];
 
@@ -130,11 +131,11 @@ function bladeSvg(v, i) {
   if (v.film) {
     // ряди отворів плівкового охолодження на боковій поверхні (видимий бік)
     const dots = [];
-    for (const t of [0.02, 0.08, 0.3, 0.5]) for (let z = Z_PLAT + 8; z < Z_CUT - 4; z += 7) { const [x, y] = surface(t, 1, -0.2); dots.push([x, y, z]); }
+    for (const t of v.filmT ?? [0.02, 0.08, 0.3, 0.5]) for (let z = Z_PLAT + 8; z < Z_CUT - 4; z += 7) { const [x, y] = surface(t, 1, -0.2); dots.push([x, y, z]); }
     out.push(D(dots, { size: 0.7, tone: "hi" }));
   }
   out.push(L(top(outline(0)), { tone: "hi" }));
-  return `<g class="je-blade" data-engine="${i}"${i === 3 ? "" : ' data-off=""'}>${out.join("")}</g>`;
+  return `<g class="je-blade" data-engine="${i}"${i === VARIANTS.length - 1 ? "" : ' data-off=""'}>${out.join("")}</g>`;
 }
 
 /** Лінії течії гарячого газу в площині розрізу та струмені охолоджувального повітря. */
@@ -167,12 +168,14 @@ const AIR_MAT = [
   ["лист хромомарганцевої сталі Cromadur, зігнутий і зварений по задній кромці"],
   ["литий нікелевий жароміцний сплав (рівноосні зерна)"],
   ["литий нікелевий сплав; пізніші серії — спрямована кристалізація (зерна вздовж лопатки)"],
+  ["монокристал нікелевого жароміцного сплаву", "керамічне теплозахисне покриття"],
   ["монокристал нікелевого сплаву з ≈3 % ренію: без меж зерен, тому не повзе при ≈1 300 K"],
 ];
 const AIR_FUNC = [
   "Порожнисте перо: повітря з компресора проходить усередині від хвостовика до кінця й забирає тепло зі стінок.",
   "Лите перо з рядом круглих каналів уздовж висоти: повітря з-за компресора проходить ними й виходить на кінці лопатки.",
   "Лите перо з трьома порожнинами; у передній стоїть вставка, з якої повітря б'є струменями в гарячу стінку зсередини.",
+  "Шість порожнин і густі ряди отворів плівкового охолодження по обох боках пера: газ перед турбіною F135 (2260 K) на ≈500 K гарячіший за точку плавлення нікелю, тож повітрям укрито майже всю поверхню.",
   "Звивисті канали всередині, ряди отворів плівкового охолодження зовні: повітря виходить на поверхню й укриває її шаром, холоднішим за газ.",
 ];
 /** Потік для 3D: газ обтікає перо на кількох висотах, охолоджувальне повітря йде вгору каналами. */
@@ -211,7 +214,7 @@ function bladeFlow(v) {
   for (const t of chans) { const [x, y] = surface(t, 0); paths.push(up(x, y, Z_TIP)); }
   if (v.film) {
     // плівка: з каналу крізь отвір на поверхню й далі вздовж неї за потоком
-    for (const side of [1, -1]) for (const t of side > 0 ? [0.02, 0.08, 0.3, 0.5] : [0.02, 0.12, 0.4]) for (const z of [52, 80, 108, 136]) {
+    for (const side of [1, -1]) for (const t of side > 0 ? v.filmT ?? [0.02, 0.08, 0.3, 0.5] : v.filmB ?? [0.02, 0.12, 0.4]) for (const z of [52, 80, 108, 136]) {
       const [cx, cy] = surface(t, 0);
       const pts = [[cx, cy, z - 6]];
       for (let u = t; u <= 1.001; u += 0.06) { const [x, y] = surface(Math.min(1, u), side, -1.6); pts.push([x, y, z]); }
@@ -234,7 +237,7 @@ function bladeApp(v, i, DATA, TEMPS) {
   }
   const airfoil = { t: "ext", shape: pts(outline(metal)), holes, z0: Z_PLAT, z1: Z_TIP, m: "hot" };
   const film = [];
-  if (v.film) for (const side of [1, -1]) for (const t of side > 0 ? [0.02, 0.08, 0.3, 0.5] : [0.02, 0.12, 0.4]) for (let z = Z_PLAT + 8; z < Z_TIP - 4; z += 7) { const [x, y] = surface(t, side, -0.15); film.push([Math.round(x * 100) / 100, Math.round(y * 100) / 100, z]); }
+  if (v.film) for (const side of [1, -1]) for (const t of side > 0 ? v.filmT ?? [0.02, 0.08, 0.3, 0.5] : v.filmB ?? [0.02, 0.12, 0.4]) for (let z = Z_PLAT + 8; z < Z_TIP - 4; z += 7) { const [x, y] = surface(t, side, -0.15); film.push([Math.round(x * 100) / 100, Math.round(y * 100) / 100, z]); }
   // ялинковий хвостовик у площині (x, z), видавлений уздовж y
   const fir = [];
   const xc = -5, top = Z_PLAT - 4, bot = 10, step = (top - bot) / 3.4;
@@ -266,10 +269,10 @@ function bladeApp(v, i, DATA, TEMPS) {
     runLabel: "Подати газ",
     spools: [{ id: "gas", rpm: 1, tau: 0.7, text: `газ ${TEMPS[i].gas} K · охолоджувальне повітря ${Math.round(TEMPS[i].cool)} K` }],
     flow: bladeFlow(v),
+    sound: { roar: 0.6, hiss: 0.6 },
     view: [0.85, 1.35, 1.15],
     root: {
       id: "rig", name: "Лопатка турбіни ВТ на стенді", kicker: v.label,
-    sound: { roar: 0.6, hiss: 0.6 },
       func: "Робоча лопатка першого ступеня турбіни високого тиску в затискачі стенда. Площина розрізу — посередині висоти пера: видно стінки й канали охолодження.",
       mat: AIR_MAT[i],
       facts: [["Двигун", DATA[i].name], ["Газ перед турбіною", `${TEMPS[i].gas} K${TEMPS[i].est ? " (оцінка)" : ""}`], ["Охолоджувальне повітря", `${Math.round(TEMPS[i].cool)} K`], ["Плавлення нікелю", `${NI_MELT} K`]],
@@ -298,10 +301,11 @@ export function build() {
     "Jumo 004B: лопатки зігнуті з листа хромомарганцевої сталі (Cromadur) і зварені; всередину йде повітря з компресора. Газ перед турбіною — лише ≈1050 K, і все одно лопатки м'якли при різкому збільшенні газу.",
     "JT8D: лита лопатка з нікелевого сплаву; частину повітря з-за компресора, минаючи камеру, подають на охолодження першого ступеня турбіни.",
     "JT9D: всередині порожнини стоїть тонкостінна вставка з отворами — струмені повітря б'ють у гарячу стінку зсередини (струминне охолодження).",
+    "F135: найгарячіший газ серії — 2260 K, на ≈500 K вище, ніж плавиться нікель. Монокристал, керамічне ТЗП і густі ряди отворів плівкового охолодження по обох боках пера; повітря на охолодження береться з-за компресора, де воно саме вже ≈800 K.",
     "Сучасна лопатка ВТ: монокристал, звивисті канали, ряди отворів плівкового охолодження, що вкривають поверхню шаром холоднішого повітря, і керамічне теплозахисне покриття (ТЗП). Газ гарячіший за точку плавлення самого металу.",
   ];
-  const note = " Температура газу — та сама, що в таблиці на Рис. 1 (для JT8D, JT9D, PW1100G — оцінки), охолоджувального повітря — температура за компресором з моделі. Перерізи лопаток схематичні: показано принцип, а не креслення конкретної деталі.";
-  const legend = `${EXPLODE_UI(DATA.map((d) => d.year), "затискач")}<span class="iso-keys"><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="hot" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>газ перед турбіною</span><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="bypass" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>охолоджувальне повітря (з-за компресора)</span><span class="iso-key"><svg class="iso-swatch" data-mark="lit" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>1728 K — плавиться чистий нікель</span></span><span class="iso-caption je-caption"></span><span class="je-sources">Джерела: порожнисті охолоджувані лопатки Jumo 004 з Cromadur — <a href="https://en.wikipedia.org/wiki/Junkers_Jumo_004">Junkers Jumo 004</a>; повітря на охолодження першого ступеня JT8D — <a href="https://en.wikipedia.org/wiki/Pratt_%26_Whitney_JT8D">Pratt &amp; Whitney JT8D</a>; струминні вставки в лопатках JT9D — дослідження NASA (<a href="https://www.science.gov/topicpages/j/jt9d+jet+engine">science.gov</a>).</span>`;
+  const note = " Температура газу — та сама, що в таблиці на Рис. 1 (для JT8D, JT9D, PW1100G — оцінки; для F135 — з Wikipedia), охолоджувального повітря — температура за компресором з моделі. Перерізи лопаток схематичні: показано принцип, а не креслення конкретної деталі.";
+  const legend = `${EXPLODE_UI(DATA.map((d) => d.year), "затискач")}<span class="iso-keys"><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="hot" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>газ перед турбіною</span><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="bypass" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>охолоджувальне повітря (з-за компресора)</span><span class="iso-key"><svg class="iso-swatch" data-mark="lit" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>1728 K — плавиться чистий нікель</span></span><span class="iso-caption je-caption"></span><span class="je-sources">Джерела: порожнисті охолоджувані лопатки Jumo 004 з Cromadur — <a href="https://en.wikipedia.org/wiki/Junkers_Jumo_004">Junkers Jumo 004</a>; повітря на охолодження першого ступеня JT8D — <a href="https://en.wikipedia.org/wiki/Pratt_%26_Whitney_JT8D">Pratt &amp; Whitney JT8D</a>; струминні вставки в лопатках JT9D — дослідження NASA (<a href="https://www.science.gov/topicpages/j/jt9d+jet+engine">science.gov</a>); T<sub>г</sub> F135 — <a href="https://en.wikipedia.org/wiki/Pratt_%26_Whitney_F135">Pratt &amp; Whitney F135</a>.</span>`;
   const script = `
 const P = ${JSON.stringify(P)};
 const DATA = ${JSON.stringify(DATA.map((d) => ({ year: d.year, name: d.name })))};
@@ -318,7 +322,7 @@ const PART_TEXT = { blade: ["Лопатка", "перо, полиця й яли�
 const st5 = { blade: { x: 0, v: 0, delay: 0 }, front: { x: 0, v: 0, delay: 0 }, back: { x: 0, v: 0, delay: 0 } };
 const partsEl = svg.querySelector(".je-parts"), explodeBtn = document.querySelector(".je-explode"), modsEl = document.querySelector(".je-mods");
 let apart = false, focus = null, pinned = null;
-let current = 3, temps = [TEMPS[3].cool, TEMPS[3].gas], touring = !still.matches, tour = 0, idle = 0, visible = false, frame = 0, last = 0, clock = 0;
+let current = TEMPS.length - 1, temps = [TEMPS[current].cool, TEMPS[current].gas], touring = !still.matches, tour = 0, idle = 0, visible = false, frame = 0, last = 0, clock = 0;
 const mk = (parent) => { const p = document.createElementNS("http://www.w3.org/2000/svg", "path"); p.setAttribute("class", "je-streak"); p.dataset.flow = "hot"; parent.appendChild(p); return p; };
 const hot = mk(flow), hotBack = mk(flowBack);
 function liquids() {
@@ -376,10 +380,10 @@ function tick(now) {
   frame = visible && (!calm || moving) ? requestAnimationFrame(tick) : 0;
 }
 function run() { if (!frame && visible) { last = 0; frame = requestAnimationFrame(tick); } }
-function select(i, user) { current = (i + 4) % 4; if (user) { touring = false; idle = 0; } say(); run(); }
+function select(i, user) { current = (i + TEMPS.length) % TEMPS.length; if (user) { touring = false; idle = 0; } say(); run(); }
 new IntersectionObserver((e) => { visible = e[e.length - 1].isIntersecting; if (visible) run(); }, { rootMargin: "120px 0px" }).observe(stage);
 stage.addEventListener("click", () => select(current + 1, true));
-stage.addEventListener("keydown", (e) => { let to = null; if (e.key === "ArrowRight" || e.key === "ArrowUp") to = Math.min(3, current + 1); if (e.key === "ArrowLeft" || e.key === "ArrowDown") to = Math.max(0, current - 1); if (e.key >= "1" && e.key <= "4") to = Number(e.key) - 1; if (to === null) return; e.preventDefault(); select(to, true); });
+stage.addEventListener("keydown", (e) => { let to = null; if (e.key === "ArrowRight" || e.key === "ArrowUp") to = Math.min(TEMPS.length - 1, current + 1); if (e.key === "ArrowLeft" || e.key === "ArrowDown") to = Math.max(0, current - 1); if (e.key >= "1" && e.key <= String(TEMPS.length)) to = Number(e.key) - 1; if (to === null) return; e.preventDefault(); select(to, true); });
 buttons.forEach((b, i) => b.addEventListener("click", () => select(i, true)));
 still.addEventListener("change", () => { touring = !still.matches; run(); });
 function setFocus(id, pin) {
@@ -419,7 +423,8 @@ say(); liquids(); streaks(1.7);
     svg,
     hint: "Клік або ← → · E — розібрати · R — 3D",
     stageLabel: "Покоління лопатки: стрілки змінюють рік",
-    initial: 3,
+    initial: VARIANTS.length - 1,
+    valuemax: VARIANTS.length - 1,
     legend,
     intro: "Вищий тиск і вища температура перед турбіною — це і вищий ККД, і менший двигун на ту саму тягу. Межу ставить метал лопатки. Інженери обходять її повітрям, яке забирають із-за компресора й проганяють крізь лопатку.",
     script,

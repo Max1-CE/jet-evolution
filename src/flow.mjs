@@ -82,6 +82,51 @@ export function flowLanes(geo, data) {
   const fanExitIn = geo.bypass.in(fanEnd);
   const fanExitOut = geo.bypass.out(fanEnd);
   const fan1 = geo.fanS[1];
+  if (geo.ab) {
+    // змішування за турбіною, форсажна камера, надзвукове сопло. На стенді — повний форсаж:
+    // швидкість на виході — змішаний струмінь моделі, перерахований на температуру форсажу (оцінка T ≈ 2000 K).
+    const { wall, exit, throat, fh } = geo.ab;
+    const mix = fanEnd;
+    const share = shareCore;
+    const Tmix = (data.static.T5 + bpr * data.static.Tfan) / (1 + bpr);
+    const vJ = ((vCore + vFan * bpr) / (1 + bpr)) * Math.sqrt(2000 / Tmix);
+    const abV = table([[mix, 200], [fh, 150], [throat - 0.3, 230], [throat, 0.6 * vJ], [exit, vJ], [exit + 0.6, vJ * 0.98], [exit + jetLen, vJ * 0.55]]);
+    const duct = (s, ff) => {
+      if (s > exit) return Math.sqrt(ff) * wall(exit) * (1 + 0.06 * smooth((s - exit) / 1.5)) + 0.004;
+      const i = Math.max(0, geo.ri(Math.min(s, 2.95))), o = wall(s);
+      return Math.sqrt(i * i + ff * (o * o - i * i));
+    };
+    const n0 = geo.nozzle[0];
+    const add = (front, ff, vFront, kind, rate, half) => {
+      const r = (s) => (s <= mix ? front(s) : lerp(front(mix), duct(s, ff), smooth((s - mix) / 0.3)));
+      const v = (s) => (s <= mix ? vFront(s) : abV(s));
+      const lane = laneOf({ r, v, s0: up, s1: exit + jetLen, kind, alpha: fade(exit + 0.2), half });
+      lanes.push({ ...lane, rate });
+    };
+    const fanVab = table([[up, 0.22 * Va], [-0.4, 0.7 * Va], [0, Va], [split, 0.95 * Va], [mix, 0.9 * Va]]);
+    const coreVab = (s) => (s <= n0 ? coreV(s) : lerp(260, 200, smooth((s - n0) / (mix - n0))));
+    for (const half of [1, -1]) {
+      for (const f of [0.3, 0.7]) {
+        const rFace = Math.sqrt(hubR ** 2 + f * (rSp ** 2 - hubR ** 2));
+        const front = (s) => {
+          if (s <= fan1) return rFace * (1 + 0.25 * smooth((-0.2 - s) / 1.2));
+          if (s < split + 0.05) return lerp(rFace, geo.ri(split + 0.05) + f * (geo.ro(split + 0.05) - geo.ri(split + 0.05)), smooth((s - fan1) / (split + 0.05 - fan1)));
+          return geo.ri(s) + f * (geo.ro(s) - geo.ri(s));
+        };
+        add(front, f * share, coreVab, hotOf, (total * share) / 4, half);
+      }
+      for (const f of [0.2, 0.5, 0.8]) {
+        const rFace = Math.sqrt(rSp ** 2 + f * (R ** 2 - rSp ** 2));
+        const front = (s) => {
+          if (s <= fan1) return rFace * (1 + 0.18 * smooth((-0.2 - s) / 1.2));
+          if (s < split + 0.12) return lerp(rFace, geo.bypass.in(split + 0.12) + f * (geo.bypass.out(split + 0.12) - geo.bypass.in(split + 0.12)), smooth((s - fan1) / (split + 0.12 - fan1)));
+          return geo.bypass.in(s) + f * (geo.bypass.out(s) - geo.bypass.in(s));
+        };
+        add(front, share + f * (1 - share), fanVab, (s) => (s >= fh ? 2 : 0), (total * (1 - share)) / 6, half);
+      }
+    }
+    return lanes;
+  }
   // ядро
   const coreFs = [0.3, 0.7];
   for (const half of [1, -1]) {

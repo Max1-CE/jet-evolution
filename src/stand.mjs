@@ -27,7 +27,7 @@ const DESK = { x: 2, y: -104, w: 40, d: 46, r: 3 };
 const DESK_H = 24;
 export const DIAL = { x: 17, y: -88, r: 10.5, z: DESK_H + 5 };
 export const KNOB = { x: 31, y: -68, r: 5.4, z: DESK_H + 4.5 };
-export const KNOB_ANGLES = [-62, -21, 21, 62].map((d) => (d * Math.PI) / 180);
+export const KNOB_ANGLES = [-64, -32, 0, 32, 64].map((d) => (d * Math.PI) / 180);
 export const DIAL_MAX = 200; // кН на повну шкалу (270°)
 
 const P = k.fitProjection(
@@ -142,7 +142,7 @@ function cable() {
   return pieces.map((piece) => T.tubeSvg(piece, { tone: "mid" })).join("") + k.dotsSvg(ends, { size: 1.1, tone: "mid" });
 }
 
-/** Пульт: ручка року (перемикач на 4 положення) і стрілочний індикатор тяги. */
+/** Пульт: ручка року (перемикач на 5 положень) і стрілочний індикатор тяги. */
 export function console() {
   const out = [];
   out.push(`<path class="iso-halo" d="${k.haloOf(DESK, 0, DESK_H, P)}"/>`);

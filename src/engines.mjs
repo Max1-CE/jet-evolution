@@ -118,17 +118,17 @@ function fanEngine(spec) {
   // кок
   parts.push({ id: "spinner", kind: "rotor", poly: [[spec.spinner[0], 0], ...sample(table([[spec.spinner[0], 0.0], [spec.spinner[0] + 0.04, hubR * 0.32], [spec.spinner[0] + 0.15, hubR * 0.66], [spec.spinner[1] - 0.05, hubR * 0.95], [spec.spinner[1], hubR]]), spec.spinner[0], spec.spinner[1], 10).slice(1), [spec.spinner[1], 0.05]] });
   // диск вентилятора
-  parts.push({ id: "fan-disc", kind: "rotor", poly: [[fan[0], 0.05], [fan[0], hubR], [fan[1], hubR * 1.02], [fan[1], 0.05]] });
+  parts.push({ id: "fan-disc", kind: "rotor", poly: spec.fanHub ? [[fan[0], 0.05], ...sample(spec.fanHub, fan[0], fan[1], 6).map(([s, r]) => [s, r - 0.004]), [fan[1], 0.05]] : [[fan[0], 0.05], [fan[0], hubR], [fan[1], hubR * 1.02], [fan[1], 0.05]] });
   // розділювач потоків і капот ядра (зовнішня стінка зовнішнього контуру зсередини)
   parts.push({ id: "splitter", kind: "case", poly: lipped(cowlOut, cowlIn, split, coreEnd, { n: 30, lip: 0.02 }) });
   // вали: НТ (тонкий, довгий) і ВТ (трубчастий)
   parts.push({ id: "lp-shaft", kind: "rotor", poly: box(fan[0], spec.lpt[1] + 0.05, 0.0, 0.035) });
   parts.push({ id: "hp-shaft", kind: "rotor", poly: box(spec.hpc[0], spec.hpt[1], 0.05, 0.075) });
   // барабани компресорів
-  parts.push({ id: "lpc-drum", kind: "rotor", poly: [[spec.lpc[0], 0.04], ...sample(ri, spec.lpc[0], spec.lpc[1], 4).map(([s, r]) => [s, r - 0.004]), [spec.lpc[1], 0.04]] });
+  if (spec.lpc) parts.push({ id: "lpc-drum", kind: "rotor", poly: [[spec.lpc[0], 0.04], ...sample(ri, spec.lpc[0], spec.lpc[1], 4).map(([s, r]) => [s, r - 0.004]), [spec.lpc[1], 0.04]] });
   parts.push({ id: "hpc-drum", kind: "rotor", poly: [[spec.hpc[0], 0.078], ...sample(ri, spec.hpc[0], spec.hpc[1], 6).map(([s, r]) => [s, r - 0.004]), [spec.hpc[1], 0.078]] });
   // проміжний корпус (між КНТ і КВТ)
-  parts.push({ id: "int-case", kind: "case", poly: [[spec.lpc[1], ri(spec.lpc[1]) - 0.004], [spec.hpc[0], ri(spec.hpc[0]) - 0.004], [spec.hpc[0], 0.09], [spec.lpc[1] + 0.03, 0.09]] });
+  if (spec.lpc) parts.push({ id: "int-case", kind: "case", poly: [[spec.lpc[1], ri(spec.lpc[1]) - 0.004], [spec.hpc[0], ri(spec.hpc[0]) - 0.004], [spec.hpc[0], 0.09], [spec.lpc[1] + 0.03, 0.09]] });
   // камера згоряння: дифузор, внутрішній корпус, жарова труба
   const b = spec.burner;
   parts.push({ id: "comb-inner", kind: "case", poly: [[spec.hpc[1], ri(spec.hpc[1]) - 0.004], [b[0], spec.combIn + 0.02], [b[1], spec.combIn + 0.02], [spec.hpt[0], ri(spec.hpt[0]) - 0.004], [spec.hpt[0], spec.combIn], [spec.hpc[1], spec.combIn]] });
@@ -147,7 +147,7 @@ function fanEngine(spec) {
   // корпус турбіни (задня опора) і хвостовий конус
   parts.push({ id: "tail", kind: "case", poly: [[spec.lpt[1], 0.04], [spec.lpt[1], ri(spec.lpt[1])], ...sample(ri, spec.lpt[1] + 0.01, plugEnd, 14).slice(1), [plugEnd, 0.0], [spec.lpt[1] + 0.12, 0.0], [spec.lpt[1] + 0.12, 0.04]] });
   // корпус газогенератора: внутрішня стінка капота = зовнішня стінка проточної частини ядра
-  parts.push({ id: "core-case", kind: "case", poly: [...sample(coreOut, spec.lpc[0] + 0.04, spec.coreEnd2, 30), ...sample(ro, spec.lpc[0] + 0.04, spec.coreEnd2, 30).reverse()] });
+  parts.push({ id: "core-case", kind: "case", poly: [...sample(coreOut, (spec.lpc ?? [split])[0] + 0.04, spec.coreEnd2, 30), ...sample(ro, (spec.lpc ?? [split])[0] + 0.04, spec.coreEnd2, 30).reverse()] });
   // редуктор (тільки для GTF): сонячна шестерня, сателіти, епіцикл
   if (spec.gear) {
     const [g0, g1] = spec.gear;
@@ -160,7 +160,7 @@ function fanEngine(spec) {
   // опорні стійки й фланці
   for (const s of spec.flanges) parts.push({ id: `flange${s}`, kind: "case", poly: box(s, s + 0.03, cowlIn(s + 0.015) - 0.03, cowlIn(s + 0.015) + 0.002) });
   // ряди лопаток
-  const lpcN = spec.lpcN;
+  const lpcN = spec.lpc ? spec.lpcN : 0;
   const hpcN = spec.hpcN;
   spec.fanRows.forEach((f) => rows.push({ ...f, spool: "lp", fan: true }));
   rows.push({ kind: "vane", s: spec.ogv[0], chord: spec.ogv[1], count: spec.ogvN, bypass: true });
@@ -179,7 +179,7 @@ function fanEngine(spec) {
     rows.push({ kind: "vane", s: d.s - 0.052, chord: 0.026, count: 50, hot: true });
     rows.push({ kind: "blade", s: d.s - 0.018, chord: 0.036, count: 70 + i * 6, spool: d.spool, hot: true });
   });
-  return { parts, rows, ro, ri, core: [split, spec.coreEnd2], bypass: { out: nacIn, in: cowlOut, s0: split, s1: fanEnd }, mixed, fuel: [b[0] + 0.03, midR], burner: [b[0] + 0.1, b[1] - 0.04], hpc: spec.hpc, lpc: spec.lpc, hpt: spec.hpt, lpt: spec.lpt, nozzle: [spec.lpt[1], spec.coreEnd2], fanS: fan, R, hubR, jetR: ro(spec.coreEnd2), fanJet: [cowlOut(fanEnd), nacIn(fanEnd)] };
+  return { parts, rows, ro, ri, core: [split, spec.coreEnd2], bypass: { out: nacIn, in: cowlOut, s0: split, s1: fanEnd }, mixed, fuel: [b[0] + 0.03, midR], burner: [b[0] + 0.1, b[1] - 0.04], hpc: spec.hpc, lpc: spec.lpc, hpt: spec.hpt, lpt: spec.lpt, nozzle: [spec.lpt[1], spec.coreEnd2], fanS: fan, R, hubR, fanHub: spec.fanHub, fanTip: spec.fanTip, jetR: ro(spec.coreEnd2), fanJet: [cowlOut(fanEnd), nacIn(fanEnd)] };
 }
 
 function jt8d() {
@@ -253,7 +253,52 @@ function gtf() {
   });
 }
 
-const BUILDERS = { jumo, jt8d, jt9d, gtf };
+function f135() {
+  // F135-PW-100: триступінчастий вентилятор без підпірних ступенів, 6 ступенів КВТ, 1 ступінь ТВТ, 2 ступені ТНТ.
+  // Потоки змішуються за турбіною, далі — форсажна камера й регульоване надзвукове сопло. ∅ 1,17 м, довжина 5,59 м.
+  const R = 0.545;
+  const hubR = 0.19;
+  const fan = [0.0, 0.55];
+  const ro = table([[0.62, 0.4], [0.7, 0.39], [1.4, 0.335], [1.45, 0.375], [1.85, 0.375], [1.88, 0.345], [2.0, 0.35], [2.32, 0.4], [2.55, 0.4]]);
+  const ri = table([[0.62, 0.31], [0.7, 0.29], [1.4, 0.3], [1.45, 0.2], [1.85, 0.2], [1.88, 0.29], [2.0, 0.285], [2.32, 0.27], [2.55, 0.22], [2.85, 0.08], [2.95, 0.0]]);
+  const nacOut = table([[-0.2, 0.565], [-0.1, 0.585], [2.55, 0.585]]);
+  const nacIn = table([[-0.2, 0.565], [-0.12, 0.549], [0.0, 0.545], [0.62, 0.505], [0.9, 0.505], [2.3, 0.51], [2.55, 0.5]]);
+  const cowlOut = table([[0.62, 0.41], [0.75, 0.43], [1.4, 0.44], [2.3, 0.44], [2.55, 0.415]]);
+  const cowlIn = table([[0.62, 0.41], [0.75, 0.415], [1.4, 0.425], [2.3, 0.425], [2.55, 0.405]]);
+  const coreOut = table([[0.62, 0.41], [0.7, 0.4], [1.4, 0.35], [1.45, 0.39], [1.85, 0.39], [1.88, 0.36], [2.0, 0.365], [2.32, 0.41], [2.55, 0.405]]);
+  const g = fanEngine({
+    R, hubR, fan, split: 0.62, lip: -0.2, spinner: [-0.3, 0.0], ro, ri, nacOut, nacIn, cowlOut, cowlIn, coreOut,
+    fanHub: table([[0.0, 0.19], [0.55, 0.3], [0.62, 0.31]]), fanTip: table([[0.0, 0.545], [0.62, 0.505]]),
+    coreEnd: 2.55, coreEnd2: 2.55, fanEnd: 2.55, plugEnd: 2.95, mixed: true,
+    lpc: null, lpcN: 0, hpc: [0.7, 1.4], hpcN: 6, burner: [1.45, 1.85], combIn: 0.2, combOut: 0.375,
+    hpt: [1.88, 2.0], hptN: 1, lpt: [2.0, 2.32], lptN: 2, flanges: [0.66, 1.42, 1.86, 2.34],
+    fanRows: [
+      { kind: "blade", s: 0.0, chord: 0.13, tipChord: 0.11, count: 22, lean: 0.02 },
+      { kind: "vane", s: 0.165, chord: 0.055, count: 34 },
+      { kind: "blade", s: 0.25, chord: 0.1, tipChord: 0.09, count: 34, lean: 0.01 },
+      { kind: "vane", s: 0.38, chord: 0.045, count: 44 },
+      { kind: "blade", s: 0.45, chord: 0.08, tipChord: 0.07, count: 42 },
+    ],
+    ogv: [0.72, 0.07], ogvN: 40,
+  });
+  // форсажна камера: корпус, антивібраційний екран, колектори форсунок, V-подібні стабілізатори полумʼя
+  const wall = table([[2.55, 0.5], [2.85, 0.462], [4.7, 0.462], [4.75, 0.46], [5.05, 0.355], [5.4, 0.41]]);
+  g.parts.push({ id: "ab-case", kind: "case", poly: shell(table([[2.55, 0.585], [4.55, 0.585], [4.75, 0.56]]), table([[2.55, 0.5], [4.75, 0.5]]), 2.55, 4.75, 16) });
+  g.parts.push({ id: "ab-liner", kind: "liner", poly: shell(table([[2.85, 0.472], [4.7, 0.472]]), table([[2.85, 0.462], [4.7, 0.462]]), 2.85, 4.7, 8) });
+  for (const [k, r] of [[1, 0.31], [2, 0.43]]) g.parts.push({ id: `spray${k}`, kind: "case", poly: box(2.9, 2.93, r - 0.01, r + 0.01) });
+  for (const [k, r] of [[1, 0.25], [2, 0.38]]) g.parts.push({ id: `holder${k}`, kind: "hot", poly: [[3.0, r], [3.1, r - 0.035], [3.1, r - 0.025], [3.015, r], [3.1, r + 0.025], [3.1, r + 0.035]] });
+  // регульоване сопло: збіжні й розбіжні стулки, зовнішні стулки, гідроциліндри приводу
+  g.parts.push({ id: "noz-conv", kind: "hot", poly: shell(table([[4.72, 0.5], [5.05, 0.385]]), table([[4.72, 0.47], [5.05, 0.355]]), 4.72, 5.05, 8) });
+  g.parts.push({ id: "noz-div", kind: "hot", poly: shell(table([[5.05, 0.385], [5.4, 0.425]]), table([[5.05, 0.355], [5.4, 0.41]]), 5.05, 5.4, 8) });
+  g.parts.push({ id: "noz-ext", kind: "case", poly: shell(table([[4.75, 0.56], [5.4, 0.445]]), table([[4.75, 0.545], [5.4, 0.432]]), 4.75, 5.4, 8) });
+  g.parts.push({ id: "noz-act", kind: "case", poly: box(4.5, 4.72, 0.585, 0.612) });
+  g.ab = { mix: 2.55, fh: 3.05, wall, exit: 5.4, throat: 5.05 };
+  g.exitS = 5.4;
+  g.jetR = 0.41;
+  return g;
+}
+
+const BUILDERS = { jumo, jt8d, jt9d, f135, gtf };
 
 /** Геометрія всіх двигунів + розраховані перерізи лопаток. */
 export const GEOMETRY = ENGINES.map((engine) => {
@@ -264,8 +309,8 @@ export const GEOMETRY = ENGINES.map((engine) => {
     let hub;
     let tip;
     if (inFan) {
-      hub = () => g.hubR;
-      tip = () => g.R - 0.004;
+      hub = g.fanHub ?? (() => g.hubR);
+      tip = g.fanTip ? (s) => g.fanTip(s) - 0.004 : () => g.R - 0.004;
     } else if (inBypass) {
       hub = g.bypass.in;
       tip = g.bypass.out;

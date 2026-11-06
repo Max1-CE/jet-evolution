@@ -25,7 +25,7 @@ const comma = (x, n) => x.toFixed(n).replace(".", ",");
 
 // --- таблиця даних (статична) ---
 if (tableEl) tableEl.innerHTML = "<thead><tr><th>Рік</th><th>Двигун</th><th>m</th><th>π</th><th>T<sub>г</sub>, K</th><th>C<sub>уд</sub> крейсер<br>модель / дані</th><th>C<sub>уд</sub> стенд<br>модель</th><th>η<sub>t</sub></th><th>η<sub>p</sub></th><th>η<sub>t</sub>·η<sub>p</sub> / η<sub>0</sub></th></tr></thead><tbody>" +
-  DATA.map((d, i) => "<tr data-row='" + i + "'><td>" + d.year + "</td><td>" + d.name + "<small>" + d.aircraft + "</small></td><td>" + comma(d.bpr, d.bpr ? 1 : 0) + "</td><td>" + comma(d.opr, d.opr < 10 ? 2 : 1).replace(/,0$/, "") + "</td><td>" + d.t4 + (d.t4est ? "*" : "") + "</td><td>" + comma(d.tsfc, 2) + " / " + (d.ref.tsfcCruise ? comma(d.ref.tsfcCruise, 2) + (d.ref.est ? "*" : "") : "—") + "</td><td>" + comma(d.tsfcStatic, 2) + (d.ref.tsfcStatic ? " / " + comma(d.ref.tsfcStatic, 2) : "") + "</td><td>" + comma(d.etaT, 2) + "</td><td>" + comma(d.etaP, 2) + "</td><td>" + comma(d.etaT * d.etaP, 2) + " / " + comma(d.etaO, 2) + "</td></tr>").join("") +
+  DATA.map((d, i) => "<tr data-row='" + i + "'><td>" + d.year + "</td><td>" + d.name + "<small>" + d.aircraft + "</small></td><td>" + comma(d.bpr, d.bpr && d.bpr < 1 ? 2 : d.bpr ? 1 : 0) + "</td><td>" + comma(d.opr, d.opr < 10 ? 2 : 1).replace(/,0$/, "") + "</td><td>" + d.t4 + (d.t4est ? "*" : "") + "</td><td>" + comma(d.tsfc, 2) + " / " + (d.ref.tsfcCruise ? comma(d.ref.tsfcCruise, 2) + (d.ref.est ? "*" : "") : "—") + "</td><td>" + comma(d.tsfcStatic, 2) + (d.ref.tsfcStatic ? " / " + comma(d.ref.tsfcStatic, 2) + (d.ref.estStatic ? "*" : "") : "") + "</td><td>" + comma(d.etaT, 2) + "</td><td>" + comma(d.etaP, 2) + "</td><td>" + comma(d.etaT * d.etaP, 2) + " / " + comma(d.etaO, 2) + "</td></tr>").join("") +
   "</tbody>";
 
 const CAPTIONS = ${JSON.stringify(captions)};
@@ -50,7 +50,7 @@ let clock = 0;
 function say() {
   const d = DATA[current];
   const head = d.year + " · " + d.name + " · " + d.era;
-  const line = "m " + comma(d.bpr, d.bpr ? 1 : 0) + " · π " + comma(d.opr, d.opr < 10 ? 2 : 0) + " · Tг " + d.t4 + " K · Cуд " + comma(d.tsfc, 2) + " кг/(кгс·год) · ηt " + comma(d.etaT, 2) + " · ηp " + comma(d.etaP, 2);
+  const line = "m " + comma(d.bpr, d.bpr && d.bpr < 1 ? 2 : d.bpr ? 1 : 0) + " · π " + comma(d.opr, d.opr < 10 ? 2 : 0) + " · Tг " + d.t4 + " K · Cуд " + comma(d.tsfc, 2) + " кг/(кгс·год) · ηt " + comma(d.etaT, 2) + " · ηp " + comma(d.etaP, 2);
   readout.textContent = head + "\\n" + line;
   readoutM.textContent = head + "\\n" + line;
   caption.textContent = CAPTIONS[current] + NOTE;
@@ -162,7 +162,7 @@ stage.addEventListener("keydown", (e) => {
   let to = null;
   if (e.key === "ArrowRight" || e.key === "ArrowUp") to = here + 1;
   if (e.key === "ArrowLeft" || e.key === "ArrowDown") to = here - 1;
-  if (e.key >= "1" && e.key <= "4") to = Number(e.key) - 1;
+  if (e.key >= "1" && e.key <= String(DATA.length)) to = Number(e.key) - 1;
   if (e.key === "Home") to = 0;
   if (e.key === "End") to = DATA.length - 1;
   if (to === null) return;

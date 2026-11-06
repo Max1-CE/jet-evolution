@@ -16,7 +16,7 @@ const RAIL_X = 40;
 const Z0 = 5; // низ шкали
 const HMAX = 62; // висота шкали
 const P_MAX = 50; // бар на повну шкалу
-const T_MAX = 2000; // K на повну шкалу
+const T_MAX = 2500; // K на повну шкалу
 const NAMES = ["2", "13", "3", "4", "5"];
 
 /** Станції: s уздовж осі, радіус відбору й параметри зі статичного циклу. */
@@ -62,7 +62,7 @@ function gauge(i) {
 }
 
 export function build() {
-  const INITIAL = 3;
+  const INITIAL = 4;
   const DATA = engineData();
   const STATIONS = GEOMETRY.map((geo, i) => stationsOf(geo, DATA[i]));
   const rail = [
@@ -82,7 +82,7 @@ export function build() {
     const s = STATIONS[i];
     return `${d.name}: компресор стискає повітря з ${comma(s[0].p, 2)} до ${comma(s[2].p, 1)} бар, і воно нагрівається до ${Math.round(s[2].T)} K ще до камери. Камера додає тепло майже без зміни тиску — до ${Math.round(s[3].T)} K; турбіна забирає частину енергії на привід компресора${d.bpr ? " і вентилятора" : ""}, решта розганяє струмінь. Ідеальний ηt = 1 − π^(−0,4/1,4) = ${comma(d.etaT, 2)} залежить лише від π.`;
   });
-  const note = " Значення — з тієї самої моделі циклу, що й на Рис. 1, для стенда (M = 0, 288 K, 1 атм): повний тиск і температура в станціях 2 (вхід), 13 (за вентилятором), 3 (за компресором), 4 (перед турбіною), 5 (за турбіною). Шкали лінійні: 0–50 бар і 0–2000 K. У Jumo 004 немає вентилятора, тож прилад 13 стоїть на кінці рейки й показує атмосферу.";
+  const note = " Значення — з тієї самої моделі циклу, що й на Рис. 1, для стенда (M = 0, 288 K, 1 атм): повний тиск і температура в станціях 2 (вхід), 13 (за вентилятором), 3 (за компресором), 4 (перед турбіною), 5 (за турбіною). Шкали лінійні: 0–50 бар і 0–2500 K. У Jumo 004 немає вентилятора, тож прилад 13 стоїть на кінці рейки й показує атмосферу.";
   const legend = `${EXPLODE_UI(DATA.map((d) => d.year))}<span class="iso-keys"><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="press" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>манометр: повний тиск, бар</span><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="hot" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>термометр: повна температура, K</span>${FLOW_KEYS}</span><span class="iso-caption je-caption"></span><span class="je-table-wrap"><table class="je-table je-stations"></table></span>`;
   const extra = `
 const ST = ${JSON.stringify(STATIONS)};
@@ -136,7 +136,8 @@ HOOKS.tick.push((dt, calm, cur) => {
 drawGauges();
 `;
   return figurePage({
-    apps: [0, 1, 2, 3].map(engineApp),
+    apps: DATA.map((_, i) => engineApp(i)),
+    valuemax: DATA.length - 1,
     n: 2,
     svg,
     hint: "Ручка або ← → · E — розібрати · R — 3D",

@@ -10,7 +10,7 @@ import { CSS, CAVITY, SITE, GAUGE, EXPLODE_CSS, PARTS_CSS } from "./style.mjs";
 import { VIEWER_CSS, viewerBlock } from "./viewer.mjs";
 
 export const SERIES = [
-  { slug: "fig-1-evolution", n: 1, title: "Еволюція реактивного двигуна", short: "Еволюція", about: "Чотири двигуни на одному стенді, в одному масштабі: від Jumo 004 до двигуна з редуктором. Ступінь двоконтурності, тиск, температура, витрата палива й обидва ККД." },
+  { slug: "fig-1-evolution", n: 1, title: "Еволюція реактивного двигуна", short: "Еволюція", about: "Пʼять двигунів на одному стенді, в одному масштабі: від Jumo 004 і військового F135 з форсажем до двигуна з редуктором. Ступінь двоконтурності, тиск, температура, витрата палива й обидва ККД." },
   { slug: "fig-2-cycle", n: 2, title: "Цикл Брайтона: тиск і температура", short: "Цикл", about: "Манометри й термометри під станціями проточної частини: що відбувається з повітрям від входу до турбіни і чому ступінь підвищення тиску визначає термічний ККД." },
   { slug: "fig-3-propulsive", n: 3, title: "Пропульсивний ККД: швидкість струменя", short: "Струмінь", about: "Приймачі повного тиску за соплом і швидкісна дошка: чому повільніший і масивніший струмінь витрачає менше палива на ту саму тягу." },
   { slug: "fig-4-gearbox", n: 4, title: "Редуктор вентилятора", short: "Редуктор", about: "Зірчастий планетарний редуктор PW1100G на стенді: п'ять сателітів, нерухоме водило, епіцикл крутить вентилятор утричі повільніше за турбіну." },
@@ -23,7 +23,7 @@ export const comma = (x, n) => x.toFixed(n).replace(".", ",");
 export function engineData() {
   return READOUTS.map((r, i) => ({
     year: r.year, era: r.era, name: r.name, aircraft: r.aircraft,
-    bpr: r.bpr, opr: r.opr, fpr: r.fpr, t4: r.t4, t4est: !!r.t4est, thrust: r.thrustKN, gear: r.gear ?? 0,
+    bpr: r.bpr, opr: r.opr, fpr: r.fpr, t4: r.t4, t4est: !!r.t4est, thrust: r.thrustKN, thrustDry: r.thrustDryKN ?? 0, ab: !!r.afterburner, gear: r.gear ?? 0,
     etaT: r.etaT, etaP: r.etaP, etaO: r.cruise.etaO, tsfc: r.tsfc, tsfcStatic: r.tsfcStatic, ref: r.ref,
     vj: r.cruise.vj, v0: r.cruise.v0, vCoreCr: r.cruise.vCore, vFanCr: r.cruise.vFan,
     vCore: r.static.vCore, vFan: r.static.vFan,

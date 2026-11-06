@@ -673,7 +673,7 @@ function flowTick(dt, power) {
     const q = (p.s - lane.s0) / lane.ds, k = Math.min(lane.r.length - 2, Math.floor(q)), f = q - k;
     const r = lane.r[k] + (lane.r[k + 1] - lane.r[k]) * f;
     pos[i * 3] = p.s; pos[i * 3 + 1] = r * Math.cos(p.phi); pos[i * 3 + 2] = r * Math.sin(p.phi);
-    const c = byp ? FLOW_COL.bypass : p.s < F.hot ? FLOW_COL.core : FLOW_COL.hot;
+    const c = byp ? (F.ab && p.s > F.ab ? FLOW_COL.hot : FLOW_COL.bypass) : p.s < F.hot ? FLOW_COL.core : FLOW_COL.hot;
     col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
   }
   flow.points.geometry.attributes.position.needsUpdate = true;
