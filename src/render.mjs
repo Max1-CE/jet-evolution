@@ -7,8 +7,10 @@ import { STAND } from "./stand.mjs";
 import { READOUTS } from "./model.mjs";
 import { GEOMETRY } from "./engines.mjs";
 const THEME = process.argv.includes("--light") ? "light" : "dark";
-const { P, M, F } = STAND;
-const V = G.viewOf(P);
+// вид: стенд серії за замовчуванням; Рис. 6 малює той самий двигун у своїй проєкції
+let P, M, F, V;
+export function useView(view) { ({ P, M, F } = view); V = G.viewOf(P); }
+useView(STAND);
 const TAU = Math.PI * 2;
 const scr = (p) => k.iso(p, P);
 const at = (s, r, phi) => G.pointOf(F, s * M, r * M, phi);
@@ -335,11 +337,12 @@ export function explodeOf(geo) {
   return out;
 }
 
-function engineSvg(geo, engine, index, initial) {
+export function engineSvg(geo, engine, index, initial, { skip = [], pylon: withPylon = true } = {}) {
   const mods = {};
   for (const id of MODULE_ORDER) mods[id] = { parts: [], rows: [] };
   for (const part of geo.parts) mods[moduleOfPart(geo, part)].parts.push(part);
   for (const row of geo.rows) mods[moduleOfRow(geo, row)].rows.push(row);
+  for (const id of skip) mods[id] = { parts: [], rows: [] };
   const present = MODULE_ORDER.filter((id) => mods[id].parts.length || mods[id].rows.length);
   const layers = { inward: [], fins: [], outward: [], section: [] };
   for (const id of present) {
@@ -359,7 +362,7 @@ function engineSvg(geo, engine, index, initial) {
     `<g class="iso-solid je-back" data-seamless>${layers.inward.join("")}</g>`,
     `<g class="iso-solid je-fins">${layers.fins.join("")}</g>`,
     `<g class="iso-solid je-back" data-seamless>${layers.outward.join("")}</g>`,
-    `<g data-mod="nac">${pylon(geo, engine)}</g>`,
+    withPylon ? `<g data-mod="nac">${pylon(geo, engine)}</g>` : "",
     `<g class="je-section">${layers.section.join("")}</g>`,
   ];
   return `<g class="je-engine" data-engine="${index}" data-mods="${present.join(" ")}"${index === initial ? "" : ' data-off=""'}>${parts.join("")}</g>`;

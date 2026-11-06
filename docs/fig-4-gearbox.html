@@ -255,8 +255,8 @@ body{margin:0;background:var(--anatomy-page);color:var(--anatomy-text);font:14px
   .jv-tools button{padding:4px 8px}
   .jv-name{font-size:18px;margin-bottom:8px}
 }
-</style></head><body class="iso" data-theme="light"><main class="iso-page"><nav class="je-nav" aria-label="Серія фігур"><a href="index.html" class="je-home">Реактивний двигун</a><a href="fig-1-evolution.html">Рис. 1 · Еволюція</a><a href="fig-2-cycle.html">Рис. 2 · Цикл</a><a href="fig-3-propulsive.html">Рис. 3 · Струмінь</a><a href="fig-4-gearbox.html" aria-current="page">Рис. 4 · Редуктор</a><a href="fig-5-hot-section.html">Рис. 5 · Лопатка</a></nav>
-<header class="je-head"><p class="je-kicker">Рис. 4 із 5</p><h1>Редуктор вентилятора</h1><p class="je-intro">Вентилятор великого діаметра мусить обертатися повільно, інакше кінці лопатей вийдуть далеко за швидкість звуку. Турбіна низького тиску, навпаки, найкраще працює швидко. Редуктор між ними дозволяє кожному обертатися зі своєю швидкістю.</p></header>
+</style></head><body class="iso" data-theme="light"><main class="iso-page"><nav class="je-nav" aria-label="Серія фігур"><a href="index.html" class="je-home">Реактивний двигун</a><a href="fig-1-evolution.html">Рис. 1 · Еволюція</a><a href="fig-2-cycle.html">Рис. 2 · Цикл</a><a href="fig-3-propulsive.html">Рис. 3 · Струмінь</a><a href="fig-4-gearbox.html" aria-current="page">Рис. 4 · Редуктор</a><a href="fig-5-hot-section.html">Рис. 5 · Лопатка</a><a href="fig-6-stovl.html">Рис. 6 · F-35B</a></nav>
+<header class="je-head"><p class="je-kicker">Рис. 4 із 6</p><h1>Редуктор вентилятора</h1><p class="je-intro">Вентилятор великого діаметра мусить обертатися повільно, інакше кінці лопатей вийдуть далеко за швидкість звуку. Турбіна низького тиску, навпаки, найкраще працює швидко. Редуктор між ними дозволяє кожному обертатися зі своєю швидкістю.</p></header>
 <figure class="iso-figure je-figure">
   <div class="iso-plate">
     <div class="iso-plate-corners" aria-hidden="true">
@@ -492,9 +492,12 @@ function buildGeo(g, node) {
   if (g.t === "lathe") {
     const geom = latheGeo(g.poly, g.seg ?? (g.at ? 48 : 96));
     if (g.ax === "z") geom.rotateY(-Math.PI / 2);
+    if (g.ax === "y") geom.rotateZ(Math.PI / 2);
+    // place: повернути навколо z і перенести (сегменти поворотного сопла)
+    if (g.place) { if (g.place.rz) geom.rotateZ(g.place.rz); geom.translate(...g.place.to); }
     for (const at of g.at ?? [null]) {
       const m = meshOf(geom, g.m, node);
-      if (at) g.ax === "z" ? m.position.set(at[0], at[1], 0) : m.position.set(0, at[0], at[1]);
+      if (at) g.ax === "z" ? m.position.set(at[0], at[1], 0) : g.ax === "y" ? m.position.set(at[0], 0, at[1]) : m.position.set(0, at[0], at[1]);
       out.push(m);
     }
   } else if (g.t === "blades") {
@@ -744,6 +747,9 @@ function spinTick(dt) {
     if (n.spec.spin.axis === "z") {
       const [cx, cy] = n.spec.spin.c ?? [0, 0];
       m.makeTranslation(cx, cy, 0).multiply(M4.makeRotationZ(a)).multiply(M4b.makeTranslation(-cx, -cy, 0));
+    } else if (n.spec.spin.axis === "y") {
+      const [cx, cz] = n.spec.spin.c ?? [0, 0];
+      m.makeTranslation(cx, 0, cz).multiply(M4.makeRotationY(a)).multiply(M4b.makeTranslation(-cx, 0, -cz));
     } else m.makeRotationX(a);
     n.own.matrixWorldNeedsUpdate = true;
   }

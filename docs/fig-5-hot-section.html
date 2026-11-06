@@ -255,8 +255,8 @@ body{margin:0;background:var(--anatomy-page);color:var(--anatomy-text);font:14px
   .jv-tools button{padding:4px 8px}
   .jv-name{font-size:18px;margin-bottom:8px}
 }
-</style></head><body class="iso" data-theme="light"><main class="iso-page"><nav class="je-nav" aria-label="Серія фігур"><a href="index.html" class="je-home">Реактивний двигун</a><a href="fig-1-evolution.html">Рис. 1 · Еволюція</a><a href="fig-2-cycle.html">Рис. 2 · Цикл</a><a href="fig-3-propulsive.html">Рис. 3 · Струмінь</a><a href="fig-4-gearbox.html">Рис. 4 · Редуктор</a><a href="fig-5-hot-section.html" aria-current="page">Рис. 5 · Лопатка</a></nav>
-<header class="je-head"><p class="je-kicker">Рис. 5 із 5</p><h1>Гаряча частина: охолодження лопатки</h1><p class="je-intro">Вищий тиск і вища температура перед турбіною — це і вищий ККД, і менший двигун на ту саму тягу. Межу ставить метал лопатки. Інженери обходять її повітрям, яке забирають із-за компресора й проганяють крізь лопатку.</p></header>
+</style></head><body class="iso" data-theme="light"><main class="iso-page"><nav class="je-nav" aria-label="Серія фігур"><a href="index.html" class="je-home">Реактивний двигун</a><a href="fig-1-evolution.html">Рис. 1 · Еволюція</a><a href="fig-2-cycle.html">Рис. 2 · Цикл</a><a href="fig-3-propulsive.html">Рис. 3 · Струмінь</a><a href="fig-4-gearbox.html">Рис. 4 · Редуктор</a><a href="fig-5-hot-section.html" aria-current="page">Рис. 5 · Лопатка</a><a href="fig-6-stovl.html">Рис. 6 · F-35B</a></nav>
+<header class="je-head"><p class="je-kicker">Рис. 5 із 6</p><h1>Гаряча частина: охолодження лопатки</h1><p class="je-intro">Вищий тиск і вища температура перед турбіною — це і вищий ККД, і менший двигун на ту саму тягу. Межу ставить метал лопатки. Інженери обходять її повітрям, яке забирають із-за компресора й проганяють крізь лопатку.</p></header>
 <figure class="iso-figure je-figure">
   <div class="iso-plate">
     <div class="iso-plate-corners" aria-hidden="true">
@@ -270,7 +270,7 @@ body{margin:0;background:var(--anatomy-page);color:var(--anatomy-text);font:14px
   </div>
   <figcaption class="iso-legend"><span class="je-years"><button type="button" data-year="0">~1944</button><button type="button" data-year="1">~1965</button><button type="button" data-year="2">~1970</button><button type="button" data-year="3">~2009</button><button type="button" data-year="4">сьогодні</button><button type="button" class="je-explode" aria-pressed="false" data-what="затискач">Розібрати затискач (E)</button><button type="button" class="je-open3d" data-open-3d>3D · обертати й розібрати (R)</button></span><span class="je-mods" role="group" aria-label="Частини"></span><span class="iso-keys"><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="hot" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>газ перед турбіною</span><span class="iso-key"><svg class="iso-swatch je-sw" data-flow="bypass" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>охолоджувальне повітря (з-за компресора)</span><span class="iso-key"><svg class="iso-swatch" data-mark="lit" viewBox="0 0 16 10" aria-hidden="true"><path d="M1.5 5h13"/></svg>1728 K — плавиться чистий нікель</span></span><span class="iso-caption je-caption"></span><span class="je-sources">Джерела: порожнисті охолоджувані лопатки Jumo 004 з Cromadur — <a href="https://en.wikipedia.org/wiki/Junkers_Jumo_004">Junkers Jumo 004</a>; повітря на охолодження першого ступеня JT8D — <a href="https://en.wikipedia.org/wiki/Pratt_%26_Whitney_JT8D">Pratt &amp; Whitney JT8D</a>; струминні вставки в лопатках JT9D — дослідження NASA (<a href="https://www.science.gov/topicpages/j/jt9d+jet+engine">science.gov</a>); T<sub>г</sub> F135 — <a href="https://en.wikipedia.org/wiki/Pratt_%26_Whitney_F135">Pratt &amp; Whitney F135</a>.</span></figcaption>
 </figure>
-<nav class="je-pager" aria-label="Сусідні фігури"><a href="fig-4-gearbox.html">← Рис. 4. Редуктор вентилятора</a><span></span></nav><div class="jv" hidden role="dialog" aria-modal="true" aria-label="3D-перегляд деталей">
+<nav class="je-pager" aria-label="Сусідні фігури"><a href="fig-4-gearbox.html">← Рис. 4. Редуктор вентилятора</a><a href="fig-6-stovl.html">Рис. 6. F-35B: вертикальна посадка →</a></nav><div class="jv" hidden role="dialog" aria-modal="true" aria-label="3D-перегляд деталей">
 <header class="jv-top"><nav class="jv-crumbs" aria-label="Рівень розбирання"></nav><button type="button" class="jv-close">Закрити · Esc</button></header>
 <div class="jv-view"><div class="jv-tip" hidden></div></div>
 <div class="jv-tools" role="toolbar" aria-label="Керування 3D">
@@ -492,9 +492,12 @@ function buildGeo(g, node) {
   if (g.t === "lathe") {
     const geom = latheGeo(g.poly, g.seg ?? (g.at ? 48 : 96));
     if (g.ax === "z") geom.rotateY(-Math.PI / 2);
+    if (g.ax === "y") geom.rotateZ(Math.PI / 2);
+    // place: повернути навколо z і перенести (сегменти поворотного сопла)
+    if (g.place) { if (g.place.rz) geom.rotateZ(g.place.rz); geom.translate(...g.place.to); }
     for (const at of g.at ?? [null]) {
       const m = meshOf(geom, g.m, node);
-      if (at) g.ax === "z" ? m.position.set(at[0], at[1], 0) : m.position.set(0, at[0], at[1]);
+      if (at) g.ax === "z" ? m.position.set(at[0], at[1], 0) : g.ax === "y" ? m.position.set(at[0], 0, at[1]) : m.position.set(0, at[0], at[1]);
       out.push(m);
     }
   } else if (g.t === "blades") {
@@ -744,6 +747,9 @@ function spinTick(dt) {
     if (n.spec.spin.axis === "z") {
       const [cx, cy] = n.spec.spin.c ?? [0, 0];
       m.makeTranslation(cx, cy, 0).multiply(M4.makeRotationZ(a)).multiply(M4b.makeTranslation(-cx, -cy, 0));
+    } else if (n.spec.spin.axis === "y") {
+      const [cx, cz] = n.spec.spin.c ?? [0, 0];
+      m.makeTranslation(cx, 0, cz).multiply(M4.makeRotationY(a)).multiply(M4b.makeTranslation(-cx, 0, -cz));
     } else m.makeRotationX(a);
     n.own.matrixWorldNeedsUpdate = true;
   }

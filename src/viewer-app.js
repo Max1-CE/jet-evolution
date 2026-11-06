@@ -197,9 +197,12 @@ function buildGeo(g, node) {
   if (g.t === "lathe") {
     const geom = latheGeo(g.poly, g.seg ?? (g.at ? 48 : 96));
     if (g.ax === "z") geom.rotateY(-Math.PI / 2);
+    if (g.ax === "y") geom.rotateZ(Math.PI / 2);
+    // place: повернути навколо z і перенести (сегменти поворотного сопла)
+    if (g.place) { if (g.place.rz) geom.rotateZ(g.place.rz); geom.translate(...g.place.to); }
     for (const at of g.at ?? [null]) {
       const m = meshOf(geom, g.m, node);
-      if (at) g.ax === "z" ? m.position.set(at[0], at[1], 0) : m.position.set(0, at[0], at[1]);
+      if (at) g.ax === "z" ? m.position.set(at[0], at[1], 0) : g.ax === "y" ? m.position.set(at[0], 0, at[1]) : m.position.set(0, at[0], at[1]);
       out.push(m);
     }
   } else if (g.t === "blades") {
@@ -449,6 +452,9 @@ function spinTick(dt) {
     if (n.spec.spin.axis === "z") {
       const [cx, cy] = n.spec.spin.c ?? [0, 0];
       m.makeTranslation(cx, cy, 0).multiply(M4.makeRotationZ(a)).multiply(M4b.makeTranslation(-cx, -cy, 0));
+    } else if (n.spec.spin.axis === "y") {
+      const [cx, cz] = n.spec.spin.c ?? [0, 0];
+      m.makeTranslation(cx, 0, cz).multiply(M4.makeRotationY(a)).multiply(M4b.makeTranslation(-cx, 0, -cz));
     } else m.makeRotationX(a);
     n.own.matrixWorldNeedsUpdate = true;
   }
