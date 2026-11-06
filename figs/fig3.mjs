@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Max Kravchenko
+// SPDX-License-Identifier: MIT
+
 // Рис. 3 — пропульсивний ККД: гребінка приймачів тиску за соплом і швидкісна дошка.
 import { k } from "../src/kit.mjs";
 import { STAND, stand, console as desk } from "../src/stand.mjs";

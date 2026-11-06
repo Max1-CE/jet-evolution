@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Max Kravchenko
+// SPDX-License-Identifier: MIT
+
 // Рис. 2 — цикл Брайтона: манометр і термометр під кожною станцією проточної частини.
 import { k } from "../src/kit.mjs";
 import { STAND, stand, console as desk } from "../src/stand.mjs";

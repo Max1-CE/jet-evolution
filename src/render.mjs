@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Max Kravchenko
+// SPDX-License-Identifier: MIT
+
 // Рендерер двигуна в розрізі: задня половина (поверхні обертання й лопатки), площина розрізу, пілон.
 import { k, G } from "./kit.mjs";
 import { STAND } from "./stand.mjs";

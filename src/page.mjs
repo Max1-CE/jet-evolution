@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Max Kravchenko
+// SPDX-License-Identifier: MIT
+
 // Спільна оболонка сторінок серії: навігація, картка, легенда, дані для живого скрипта.
 import { k, kitScript } from "./kit.mjs";
 import { READOUTS } from "./model.mjs";

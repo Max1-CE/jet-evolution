@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Max Kravchenko
+// SPDX-License-Identifier: MIT
+
 // Повноекранний 3D-переглядач деталей: розмітка, стилі, вбудовування скрипта й каталогу.
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";

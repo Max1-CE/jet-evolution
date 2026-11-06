@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Max Kravchenko
+// SPDX-License-Identifier: MIT
+
 // Рис. 4 — зірчастий редуктор вентилятора (як у PW1100G): водило нерухоме,
 // сонячна шестерня на валу ТНТ, п'ять сателітів на нерухомих осях, епіцикл крутить вентилятор.
 import { k, G } from "../src/kit.mjs";

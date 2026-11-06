@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Max Kravchenko
+// SPDX-License-Identifier: MIT
+
 // Випробувальний стенд: плита, станина з консолями, силова балка, рухома рама на пружних
 // пластинах, тензодатчик тяги й пульт з ручкою року та манометром тяги.
 import { k, G, T } from "./kit.mjs";

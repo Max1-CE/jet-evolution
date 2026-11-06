@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Max Kravchenko
+// SPDX-License-Identifier: MIT
+
 // Стилі фігури: усі кольори — токени, світла тема й темна.
 export const CSS = `
 .je-figure{--je-bypass:#2f6fd6;--je-core:#c98a12;--je-hot:#d9481c;--je-hot-ink:#f3d9c9;--je-liner:#f6eee6}

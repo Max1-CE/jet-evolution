@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Max Kravchenko
+// SPDX-License-Identifier: MIT
+
 // 3D-переглядач деталей (вбудовується в сторінку як <script type="module">).
 // Дерево деталей приходить з #je-apps (src/catalog.mjs), геометрія будується тут.
 // Розріз — площини відсікання з clipIntersection; «заливка» розрізу — задні грані кольором перерізу.

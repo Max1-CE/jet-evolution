@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Max Kravchenko
+// SPDX-License-Identifier: MIT
+
 // Розбирання двигуна на модулі (Рис. 1–3): модулі їдуть уздовж вала, список модулів у легенді.
 import { EXPLODE, MODULE_ORDER } from "./render.mjs";
 import { STAND } from "./stand.mjs";

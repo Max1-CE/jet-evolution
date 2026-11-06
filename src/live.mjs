@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Max Kravchenko
+// SPDX-License-Identifier: MIT
+
 // Живий скрипт сторінки (рядок, вбудовується після kitScript()).
 import { SLOW, DT } from "./flow.mjs";
 

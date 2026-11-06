@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Max Kravchenko
+// SPDX-License-Identifier: MIT
+
 // Звірка моделі з опублікованими даними: node check.mjs (exit 1, якщо розбіжність > 8 %)
 import { READOUTS } from "./model.mjs";
 const f = (x, n = 2) => x.toFixed(n);

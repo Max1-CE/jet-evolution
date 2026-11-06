@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Max Kravchenko
+// SPDX-License-Identifier: MIT
+
 // Рис. 1 — еволюція: чотири двигуни на стенді, потоки двох контурів, readout з моделі.
 import { k } from "../src/kit.mjs";
 import { STAND, stand, console as desk } from "../src/stand.mjs";

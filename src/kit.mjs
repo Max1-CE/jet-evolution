@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Max Kravchenko
+// SPDX-License-Identifier: MIT
+
 // Набір anatomy (MIT, © 2026 Ryan) — копія в vendor/anatomy
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
